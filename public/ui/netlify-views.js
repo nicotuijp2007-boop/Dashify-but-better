@@ -153,10 +153,102 @@ function linkButton(href, text) {
   return href ? h("a", { class: "link-btn", href, target: "_blank", rel: "noopener noreferrer" }, h("span", {}, text), icon("external")) : null;
 }
 
-/** One site: preview, published deploy facts and summary, recent deploys. Returns { bar, body }. */
-export function siteView(entry, id, now, message) {
+function actionButton(actions, key, label, run, { primary = false } = {}) {
+  const busy = actions?.busy === key;
+  return h(
+    "button",
+    { class: `button small-btn${primary ? " primary" : ""}`, type: "button", disabled: Boolean(actions?.busy), "aria-busy": busy ? "true" : "false", onclick: run },
+    busy ? "Bezig…" : label,
+  );
+}
+
+function actionRow(iconName, title, text, button) {
+  return h(
+    "div",
+    { class: "set-row" },
+    h("span", { class: "tile tile-teal tile-sm", "aria-hidden": "true" }, icon(iconName, "tile-glyph")),
+    h("div", { class: "grow" }, h("div", { class: "metric" }, title), text ? h("div", { class: "secondary small" }, text) : null),
+    button,
+  );
+}
+
+/** Rebuild and auto-publish for a site. */
+function actionsCard(site, published, actions) {
+  const rows = [];
+  rows.push(
+    actionRow(
+      "refresh",
+      "Opnieuw deployen",
+      site.hasRepo
+        ? `Nieuwe build van ${site.repoBranch ?? "de branch"}. Kost ongeveer 15 credits.`
+        : "Niet gekoppeld aan een repo; deploy deze site vanaf je computer.",
+      site.hasRepo
+        ? actionButton(actions, "rebuild", "Deployen", () =>
+            actions.run({
+              action: "rebuild",
+              siteId: site.id,
+              key: "rebuild",
+              confirmText: `${site.name} opnieuw bouwen en publiceren vanaf ${site.repoBranch ?? "de branch"}?\n\nEen productie-deploy kost ongeveer 15 credits.`,
+            }),
+          { primary: true })
+        : null,
+    ),
+  );
+  if (published) {
+    const locked = published.locked;
+    rows.push(
+      actionRow(
+        "lock",
+        `Auto-publish ${locked ? "uit" : "aan"}`,
+        locked
+          ? `Vergrendeld op deploy ${published.id.slice(0, 7)}. Nieuwe deploys gaan niet vanzelf live.`
+          : "Nieuwe geslaagde deploys gaan automatisch live.",
+        actionButton(actions, "lock", locked ? "Aanzetten" : "Uitzetten", () =>
+          actions.run({
+            action: locked ? "unlock" : "lock",
+            siteId: site.id,
+            deployId: published.id,
+            key: "lock",
+            confirmText: locked
+              ? `Auto-publish weer aanzetten voor ${site.name}? Nieuwe deploys gaan dan weer vanzelf live.`
+              : `Auto-publish uitzetten voor ${site.name}? De huidige deploy blijft live; nieuwe deploys moet je zelf live zetten.`,
+          }),
+        ),
+      ),
+    );
+  }
+  const result = actions?.result
+    ? h("div", { class: "result", role: "status" }, statusIcon(actions.result.ok ? "ok" : "danger"), h("p", {}, actions.result.text))
+    : null;
+  return [h("h2", { class: "section-title" }, "Acties"), h("section", { class: "card group" }, rows, result)];
+}
+
+/** Restore or cancel button for one deploy in the list, if it applies. */
+function deployAction(site, d, published, actions) {
+  const info = deployState(d, { published: d.id === published?.id });
+  if (info.kind === "busy") {
+    return actionButton(actions, `cancel:${d.id}`, "Annuleer", () =>
+      actions.run({ action: "cancel", siteId: site.id, deployId: d.id, key: `cancel:${d.id}`, confirmText: `Deze build van ${site.name} annuleren?` }),
+    );
+  }
+  if (d.state === "ready" && d.id !== published?.id) {
+    return actionButton(actions, `restore:${d.id}`, "Zet live", () =>
+      actions.run({
+        action: "restore",
+        siteId: site.id,
+        deployId: d.id,
+        key: `restore:${d.id}`,
+        confirmText: `Deze deploy van ${site.name} weer live zetten?\n\n“${deployTitle(d)}”\n\nEr wordt niets opnieuw gebouwd.`,
+      }),
+    );
+  }
+  return null;
+}
+
+/** One site: preview, actions, published deploy facts and summary, recent deploys. Returns { bar, body }. */
+export function siteView(entry, id, now, message, actions) {
   const data = entry?.data;
-  const bar = { back: "#/netlify", title: data?.site?.name ?? "Site", always: true };
+  const bar = { back: "#/", title: data?.site?.name ?? "Site", always: true };
   if (!data) {
     return {
       bar,
@@ -179,9 +271,22 @@ export function siteView(entry, id, now, message) {
       h(
         "section",
         { class: "card", "aria-label": "Gepubliceerde deploy" },
-        h("div", { class: "deploy-head" }, stateBadge(published, true), published.context ? h("span", { class: "secondary small" }, contextLabel(published.context)) : null),
+        h(
+          "div",
+          { class: "deploy-head" },
+          stateBadge(published, true),
+          published.context ? h("span", { class: "secondary small" }, contextLabel(published.context)) : null,
+          published.locked ? h("span", { class: "tag" }, icon("lock"), h("span", {}, "Vergrendeld")) : null,
+        ),
         h("p", { class: "deploy-title" }, deployTitle(published)),
       ),
+    );
+  }
+  if (actions) body.push(...actionsCard(site, published, actions));
+
+  if (published) {
+    body.push(
+      h("h2", { class: "section-title" }, "Gepubliceerde deploy"),
       h(
         "dl",
         { class: "card info-list" },
@@ -233,10 +338,10 @@ export function siteView(entry, id, now, message) {
               "div",
               { class: "grow" },
               h("div", { class: "metric ellipsis" }, deployTitle(d)),
-              h("div", { class: "muted tiny" }, [info.label, contextLabel(d.context), d.branch, d.commitShort, formatSeconds(d.deployTime)].filter(Boolean).join(" · ")),
+              h("div", { class: "muted tiny" }, [info.label, contextLabel(d.context), d.branch, d.commitShort, formatSeconds(d.deployTime), when(d.createdAt, now)].filter(Boolean).join(" · ")),
               d.errorMessage ? h("div", { class: "secondary small" }, d.errorMessage) : null,
             ),
-            h("span", { class: "muted tiny nowrap" }, when(d.createdAt, now)),
+            actions ? deployAction(site, d, published, actions) : null,
           );
         }),
       ),

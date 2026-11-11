@@ -2,7 +2,7 @@
 // deploy is picked up right away), cache as fallback. /api/* is never cached here; the
 // app keeps its own copy of the last good response.
 
-const CACHE = "limieten-shell-v3";
+const CACHE = "limieten-shell-v4";
 const SHELL = [
   "/",
   "/index.html",

@@ -1,4 +1,5 @@
 // Presentation rules shared by the list and the detail screen. Pure functions, no DOM.
+import { computeSummary } from "./contract.js";
 import { formatDateTime, formatDuration, formatNumber, sourceLabel, timeAgo } from "./format.js";
 
 export const LEVELS = ["danger", "warn", "ok"];
@@ -107,4 +108,18 @@ export function detailsUrl(dashboardUrl, service) {
   const path = DETAILS_PATHS[service];
   if (!dashboardUrl || !path) return null;
   return new URL(path, dashboardUrl).toString();
+}
+
+/** Services the app does not show (their limits and problems are left out). */
+export const HIDDEN_SERVICES = new Set(["supabase"]);
+
+/**
+ * The response without the hidden services. When something was left out, the counts and
+ * the headline are recomputed so they match what is shown.
+ */
+export function withoutServices(response, hidden = HIDDEN_SERVICES) {
+  const limits = response.limits.filter((l) => !hidden.has(l.service));
+  const problems = response.problems.filter((p) => !hidden.has(p.service));
+  if (limits.length === response.limits.length && problems.length === response.problems.length) return response;
+  return { ...response, limits, problems, summary: computeSummary(limits) };
 }

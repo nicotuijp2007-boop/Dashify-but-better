@@ -87,5 +87,101 @@
     "manual_deploy": false,
     "error_message": null,
     "summary": null
+  },
+  "6af4aaaa1111222233334444": {
+    "id": "6af4aaaa1111222233334444",
+    "site_id": "400c3de6-bdbf-4cd3-8a07-9a9242f9f874",
+    "name": "usage-dashboard-e00568",
+    "state": "building",
+    "context": "production",
+    "branch": "main",
+    "commit_ref": "9ae7482d921298be4413392868d9eef8dbadfe32",
+    "commit_url": "https://github.com/nicotuijp2007-boop/overvieuw-/commit/9ae7482d921298be4413392868d9eef8dbadfe32",
+    "committer": "nicotuijp2007-boop",
+    "title": "Work in progress",
+    "commit_message": null,
+    "created_at": "2026-11-11T15:29:44.139Z",
+    "published_at": null,
+    "deploy_time": 27,
+    "framework": "next",
+    "deploy_ssl_url": "https://main--usage-dashboard-e00568.netlify.app",
+    "links": {
+      "permalink": "https://6af489e879d43befe5e13c82--usage-dashboard-e00568.netlify.app",
+      "alias": "https://usage-dashboard-e00568.netlify.app",
+      "branch": null
+    },
+    "manual_deploy": false,
+    "error_message": null,
+    "summary": null,
+    "screenshot_url": "https://d33wubrfki0l68.cloudfront.net/6af489e879d43befe5e13c82/screenshot_2026-11-11-15-30-15-0000.webp",
+    "available_functions": [
+      {
+        "n": "___netlify-server-handler"
+      }
+    ]
+  },
+  "6af44f757a95d347949b9288": {
+    "id": "6af44f757a95d347949b9288",
+    "site_id": "400c3de6-bdbf-4cd3-8a07-9a9242f9f874",
+    "name": "usage-dashboard-e00568",
+    "state": "error",
+    "context": "production",
+    "branch": "main",
+    "commit_ref": "9ae7482d921298be4413392868d9eef8dbadfe32",
+    "commit_url": "https://github.com/nicotuijp2007-boop/overvieuw-/commit/9ae7482d921298be4413392868d9eef8dbadfe32",
+    "committer": "nicotuijp2007-boop",
+    "title": "Leave out the cookie login for now (to be done with Supabase later)",
+    "commit_message": null,
+    "created_at": "2026-11-11T15:29:44.139Z",
+    "published_at": "2026-11-11T15:30:14.543Z",
+    "deploy_time": 27,
+    "framework": "next",
+    "deploy_ssl_url": "https://main--usage-dashboard-e00568.netlify.app",
+    "links": {
+      "permalink": "https://6af489e879d43befe5e13c82--usage-dashboard-e00568.netlify.app",
+      "alias": "https://usage-dashboard-e00568.netlify.app",
+      "branch": null
+    },
+    "manual_deploy": false,
+    "error_message": null,
+    "summary": null,
+    "screenshot_url": "https://d33wubrfki0l68.cloudfront.net/6af489e879d43befe5e13c82/screenshot_2026-11-11-15-30-15-0000.webp",
+    "available_functions": [
+      {
+        "n": "___netlify-server-handler"
+      }
+    ]
+  },
+  "6af3bbbb5555666677778888": {
+    "id": "6af3bbbb5555666677778888",
+    "site_id": "400c3de6-bdbf-4cd3-8a07-9a9242f9f874",
+    "name": "usage-dashboard-e00568",
+    "state": "ready",
+    "context": "production",
+    "branch": "main",
+    "commit_ref": "9ae7482d921298be4413392868d9eef8dbadfe32",
+    "commit_url": "https://github.com/nicotuijp2007-boop/overvieuw-/commit/9ae7482d921298be4413392868d9eef8dbadfe32",
+    "committer": "nicotuijp2007-boop",
+    "title": "Previous good deploy",
+    "commit_message": null,
+    "created_at": "2026-11-11T10:49:00.000Z",
+    "published_at": "2026-11-11T15:30:14.543Z",
+    "deploy_time": 27,
+    "framework": "next",
+    "deploy_ssl_url": "https://main--usage-dashboard-e00568.netlify.app",
+    "links": {
+      "permalink": "https://6af489e879d43befe5e13c82--usage-dashboard-e00568.netlify.app",
+      "alias": "https://usage-dashboard-e00568.netlify.app",
+      "branch": null
+    },
+    "manual_deploy": false,
+    "error_message": null,
+    "summary": null,
+    "screenshot_url": "https://d33wubrfki0l68.cloudfront.net/6af489e879d43befe5e13c82/screenshot_2026-11-11-15-30-15-0000.webp",
+    "available_functions": [
+      {
+        "n": "___netlify-server-handler"
+      }
+    ]
   }
 }

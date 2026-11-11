@@ -23,6 +23,10 @@ const MESSAGES = {
   netlify_invalid: "Onverwacht antwoord van Netlify.",
   netlify_status: "Onverwachte fout van Netlify.",
   bad_request: "Ongeldig verzoek.",
+  forbidden: "Niet toegestaan.",
+  netlify_no_repo: "Deze site is niet gekoppeld aan een repo, dus Netlify kan hem niet opnieuw bouwen.",
+  netlify_not_ready: "Alleen een geslaagde deploy kan worden teruggezet.",
+  netlify_not_running: "Deze deploy is al klaar en kan niet meer worden geannuleerd.",
 };
 
 export function messageFor(code, status) {

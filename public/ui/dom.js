@@ -96,6 +96,7 @@ export const ICONS = {
   trash: [p("M4 7h16M10 11v6m4-6v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3")],
   phone: [["rect", { x: "6.5", y: "2.5", width: "11", height: "19", rx: "2.5", ...stroke }], p("M11 18.5h2")],
   plug: [p("M9 3v5m6-5v5M7 8h10v3a5 5 0 0 1-10 0V8ZM12 16v5")],
+  lock: [["rect", { x: "5", y: "11", width: "14", height: "10", rx: "2", ...stroke }], p("M8 11V8a4 4 0 0 1 8 0v3")],
 };
 
 export function icon(name, className) {

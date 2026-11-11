@@ -54,7 +54,9 @@ test("site view: published deploy with summary, recent deploys", async () => {
   assert.equal(body.published.framework, "next");
   assert.equal(body.published.summary.length, 5);
   assert.equal(body.published.summary[3].description, "We have deployed 1 function. Visit your Functions for more information.");
-  assert.deepEqual(body.deploys.map((d) => d.state), ["ready", "error"]);
+  assert.deepEqual(body.deploys.map((d) => d.state), ["ready", "error", "ready"]);
+  assert.equal(body.site.hasRepo, true);
+  assert.equal(body.published.locked, false);
   assert.equal(body.deploys[1].errorMessage, "Build script returned non-zero exit code: 2");
 });
 

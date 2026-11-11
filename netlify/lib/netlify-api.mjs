@@ -10,6 +10,9 @@ export const SCREENSHOT_ORIGIN = "https://d33wubrfki0l68.cloudfront.net";
 
 const ID = /^[A-Za-z0-9-]{8,64}$/;
 
+/** Deploy states that can still be cancelled. */
+export const BUSY_STATES = new Set(["new", "enqueued", "building", "uploading", "uploaded", "preparing", "prepared", "processing", "processed", "retrying", "pending_review", "accepted"]);
+
 export function isValidId(id) {
   return typeof id === "string" && ID.test(id);
 }
@@ -63,6 +66,7 @@ export function mapDeploy(d) {
     permalink: https(d.links?.permalink),
     deployUrl: https(d.deploy_ssl_url),
     manual: d.manual_deploy === true,
+    locked: d.locked === true,
     errorMessage: str(d.error_message),
     summary: messages
       ? messages
@@ -89,6 +93,7 @@ export function mapSite(s, lastDeploy = null) {
     repo: str(build.repo_path),
     repoUrl: https(build.repo_url),
     repoBranch: str(build.repo_branch),
+    hasRepo: Boolean(str(build.repo_url)),
     updatedAt: str(s.updated_at),
     published: mapDeploy(s.published_deploy),
     lastDeploy: mapDeploy(lastDeploy),
@@ -115,11 +120,17 @@ function newest(deploys) {
 
 /** Small API client. `fetchImpl` is injectable for tests. */
 export function createClient(token, fetchImpl = fetch) {
-  async function get(path) {
+  async function request(method, path, body) {
     let res;
     try {
       res = await fetchImpl(`${NETLIFY_API}${path}`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
     } catch (err) {
@@ -129,11 +140,23 @@ export function createClient(token, fetchImpl = fetch) {
     if (res.status === 401 || res.status === 403) throw new NetlifyError("netlify_unauthorized", res.status);
     if (res.status === 404) throw new NetlifyError("netlify_not_found", 404);
     if (!res.ok) throw new NetlifyError("netlify_status", res.status);
+    const text = await res.text();
+    if (!text) return null;
     try {
-      return await res.json();
+      return JSON.parse(text);
     } catch {
       throw new NetlifyError("netlify_invalid");
     }
+  }
+
+  const get = (path) => request("GET", path);
+  const post = (path, body) => request("POST", path, body);
+
+  /** Fetches a deploy and checks that it belongs to the given site. */
+  async function deployOf(siteId, deployId) {
+    const deploy = await get(`/deploys/${encodeURIComponent(deployId)}`);
+    if (!deploy || deploy.site_id !== siteId) throw new NetlifyError("netlify_not_found", 404);
+    return deploy;
   }
 
   async function status() {
@@ -180,6 +203,34 @@ export function createClient(token, fetchImpl = fetch) {
         published = mapDeploy(await get(`/deploys/${encodeURIComponent(publishedId)}`).catch(() => site.published_deploy));
       }
       return { site: mapSite(site, list[0] ? deploys[0] : null), published, deploys: list };
+    },
+
+    /** Actions. Each one checks that the deploy belongs to the site before changing anything. */
+    async rebuild(siteId) {
+      const site = await get(`/sites/${encodeURIComponent(siteId)}`);
+      if (!site?.build_settings?.repo_url) throw new NetlifyError("netlify_no_repo");
+      const build = await post(`/sites/${encodeURIComponent(siteId)}/builds`, {});
+      return { deployId: str(build?.deploy_id) };
+    },
+
+    async restore(siteId, deployId) {
+      const deploy = await deployOf(siteId, deployId);
+      if (deploy.state !== "ready") throw new NetlifyError("netlify_not_ready");
+      await post(`/sites/${encodeURIComponent(siteId)}/deploys/${encodeURIComponent(deployId)}/restore`);
+      return { deployId };
+    },
+
+    async lock(siteId, deployId, locked) {
+      await deployOf(siteId, deployId);
+      await post(`/deploys/${encodeURIComponent(deployId)}/${locked ? "lock" : "unlock"}`);
+      return { deployId, locked };
+    },
+
+    async cancel(siteId, deployId) {
+      const deploy = await deployOf(siteId, deployId);
+      if (!BUSY_STATES.has(deploy.state)) throw new NetlifyError("netlify_not_running");
+      await post(`/deploys/${encodeURIComponent(deployId)}/cancel`);
+      return { deployId };
     },
   };
 }

@@ -29,33 +29,32 @@ iPhone (PWA)  --cookie-->  Netlify Function /api/limits  --Bearer WIDGET_TOKEN--
 | --- | --- |
 | `public/` | De PWA: `index.html`, `app.js`, `styles.css`, service worker, manifest, iconen |
 | `public/lib/` | Pure logica (contract, opmaak, weergaveregels, cache, routes), ook gebruikt door de tests |
-| `netlify/functions/` | `limits.mjs` (`GET /api/limits`), `netlify.mjs` (`GET /api/netlify`), `login.mjs`, `logout.mjs` |
+| `netlify/functions/` | `limits.mjs` (`GET /api/limits`), `netlify.mjs` (`GET /api/netlify`), `netlify-action.mjs` (`POST /api/netlify/action`), `login.mjs`, `logout.mjs` |
 | `netlify/lib/` | Configuratie, sessie-cookie, JSON-hulpjes |
 | `test/` | Tests (`node --test`) met JSON-fixtures volgens contract v1 |
 | `scripts/` | Lokale dev-server; script dat de PNG-iconen maakt |
 
 ## Wat de app doet
 
-- **Hoofdscherm:** de kopregel van het dashboard, "Bijgewerkt 3m geleden", statuschips met aantallen
-  (tik om te filteren), en de limieten in dezelfde volgorde als het dashboard. Limieten met een
-  reset of die niet OK zijn krijgen een volledige rij met een balk en een streepje; de rest een
-  compacte rij. Vernieuwen gaat met de knop of door omlaag te trekken. Bij openen en elke 5 minuten
-  ververst hij vanzelf.
-- **Detailscherm per limiet:** wat er over is, gebruikt, de limiet, de status, de reset (datum en
-  aftelling), de verstreken periode, wanneer hij opraakt, de urgentie, de bron en de versheid.
-  Daaronder staan links naar het dashboard (en "Details" voor Claude).
+Drie tabs onderin: **Netlify**, **Usage** en **Instellingen**.
+
+- **Netlify** (startscherm, zoals Dashify): je account, de laatste deploy (status, context, site,
+  commitbericht, auteur, branch, commit, buildtijd), al je sites met een preview en hun laatste
+  deploy, en de status van Netlify zelf. Tik op een site voor de gepubliceerde deploy (aangemaakt,
+  buildtijd, framework, link, commit, branch, deploy-ID), de deploy-samenvatting en de recente
+  deploys.
+- **Acties per site**, steeds na bevestiging:
+  - *Opnieuw deployen*: nieuwe build van de gekoppelde branch (een productie-deploy kost ~15 credits);
+  - *Zet live*: een eerdere geslaagde deploy terugzetten (geen nieuwe build);
+  - *Auto-publish aan/uit*: nieuwe deploys wel of niet vanzelf live zetten;
+  - *Annuleer*: een build die nog loopt stoppen.
+- **Usage**: een grote meter met je krapste limiet, statuschips om te filteren, en al je limieten
+  (zoals de Netlify-credits) in dezelfde volgorde als het dashboard. Supabase wordt niet getoond.
+  Tik op een limiet voor de details.
 - **Offline of fout:** je ziet de laatst bewaarde gegevens met een lichte melding en het tijdstip.
-  Rode blokken zijn er niet.
-- **Netlify (zoals Dashify, alleen kijken):** onder je limieten staan de laatste deploy (status,
-  context, site, commitbericht, auteur, branch, commit, buildtijd), al je sites met een preview en
-  hun laatste deploy, en de status van Netlify zelf. Tik op een site voor de gepubliceerde deploy
-  (aangemaakt, buildtijd, framework, link, commit, branch, deploy-ID), de deploy-samenvatting en de
-  recente deploys.
-- **Instellingen:** "Verbinding testen" laat duidelijk zien of het gelukt is, of de token werd
-  geweigerd (401), of dat er een netwerkfout was. Verder: bewaarde gegevens wissen en uitloggen.
-- **Weergave:** zoals het dashboard toont de app altijd wat er over is, en elke status als icoon
-  plus woord (OK, Let op, Kritiek), nooit alleen als kleur. Licht en donker volgen het toestel, de
-  tekstgrootte volgt de iOS-instelling, en alles heeft labels voor VoiceOver.
+- **Weergave:** donker als basis met een turquoise accent, licht volgt het toestel. Status altijd
+  als icoon plus woord (OK, Let op, Kritiek). De tekstgrootte volgt de iOS-instelling, alles heeft
+  labels voor VoiceOver, en animaties staan uit bij "Verminder beweging".
 
 ## Op Netlify zetten
 
@@ -131,5 +130,7 @@ offline nodig is, zet het dan in de lijst `SHELL` in `public/sw.js` en verhoog `
 - Geen tokens of wachtwoorden in de repo. `.env`-bestanden staan in `.gitignore`.
 - `NETLIFY_TOKEN` blijft op de server. `/api/netlify` doet alleen vaste GET-verzoeken en stuurt
   alleen een vaste selectie velden door (geen omgevingsvariabelen of build-instellingen).
+  `/api/netlify/action` kent alleen de vier acties hierboven, werkt alleen ingelogd, vanaf deze site
+  zelf en met JSON, en controleert dat een deploy echt bij de site hoort.
 - `WIDGET_TOKEN` gaat alleen van de Netlify Function naar het dashboard, in de
   `Authorization`-header. Hij komt nooit in de browser, in een URL of in een antwoord.

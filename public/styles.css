@@ -1358,3 +1358,10 @@ input[type="password"] {
   font-weight: 500;
   word-break: break-all;
 }
+.deploys li .button {
+  flex: none;
+  align-self: center;
+}
+.set-row .button.primary {
+  color: #04201d;
+}

@@ -12,6 +12,7 @@ import {
   resetIn,
   usedText,
   usesFullRow,
+  withoutServices,
 } from "../public/lib/view.js";
 import { d, fixture } from "./helpers.mjs";
 
@@ -91,4 +92,14 @@ test("details link only for services that have one", () => {
   assert.equal(detailsUrl("https://usage-dashboard-e00568.netlify.app", "claude"), "https://usage-dashboard-e00568.netlify.app/claude-code");
   assert.equal(detailsUrl("https://usage-dashboard-e00568.netlify.app", "netlify"), null);
   assert.equal(detailsUrl(null, "claude"), null);
+});
+
+test("Supabase is left out, counts and headline recomputed", () => {
+  const r = withoutServices(normalizeResponse(fixture("full")));
+  assert.deepEqual(r.limits.map((l) => l.id), ["claude|Sessie", "claude|Week", "netlify|Credits"]);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.summary, { ok: 2, warn: 0, danger: 1, headline: "1 kritiek · krapst: Claude (Pro) Sessie, 8% over" });
+  const untouched = normalizeResponse(fixture("contract-example"));
+  untouched.problems = [];
+  assert.equal(withoutServices(untouched), untouched, "same object when nothing is hidden");
 });

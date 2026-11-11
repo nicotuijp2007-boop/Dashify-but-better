@@ -19,6 +19,15 @@ export function fakeNetlifyFetch({ token = "fake-netlify-token", calls = [] } = 
     if (u.host !== "api.netlify.com") throw new TypeError("fetch failed");
     if (init.headers?.Authorization !== `Bearer ${token}`) return json({ code: 401, message: "Access Denied" }, 401);
     const path = u.pathname.replace("/api/v1", "");
+    if ((init.method ?? "GET") === "POST") {
+      let m = /^\/sites\/([^/]+)\/builds$/.exec(path);
+      if (m) return sites.some((s) => s.id === m[1]) ? json({ id: "build1", deploy_id: "6af4cccc9999000011112222" }) : json({ code: 404 }, 404);
+      m = /^\/sites\/([^/]+)\/deploys\/([^/]+)\/restore$/.exec(path);
+      if (m) return details[m[2]] ? json(details[m[2]]) : json({ code: 404 }, 404);
+      m = /^\/deploys\/([^/]+)\/(lock|unlock|cancel)$/.exec(path);
+      if (m) return details[m[1]] ? json({ ...details[m[1]], locked: m[2] === "lock" }) : json({ code: 404 }, 404);
+      return json({ code: 404 }, 404);
+    }
     if (path === "/accounts") return json(accounts);
     if (path === "/sites") return json(sites);
     let m = /^\/sites\/([^/]+)\/deploys$/.exec(path);

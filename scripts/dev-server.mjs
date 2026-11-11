@@ -13,6 +13,7 @@ import { handleLimits } from "../netlify/functions/limits.mjs";
 import { handleLogin } from "../netlify/functions/login.mjs";
 import { handleLogout } from "../netlify/functions/logout.mjs";
 import { handleNetlify } from "../netlify/functions/netlify.mjs";
+import { handleNetlifyAction } from "../netlify/functions/netlify-action.mjs";
 import { fakeNetlifyFetch } from "../test/netlify-fake.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -81,6 +82,7 @@ const routes = {
   "/api/login": handleLogin,
   "/api/logout": handleLogout,
   "/api/netlify": (request, options) => handleNetlify(request, { ...options, fetchImpl: netlifyFetch }),
+  "/api/netlify/action": (request, options) => handleNetlifyAction(request, { ...options, fetchImpl: netlifyFetch }),
 };
 
 createServer(async (req, res) => {

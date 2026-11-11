@@ -22,9 +22,10 @@ import {
   resetIn,
   usedText,
   usesFullRow,
+  withoutServices,
 } from "./lib/view.js";
 
-const APP_VERSION = "2.0.0";
+const APP_VERSION = "2.1.0";
 const AUTO_REFRESH_MS = 5 * 60_000;
 const REFRESH_ON_RETURN_MS = 60_000;
 
@@ -56,6 +57,8 @@ const state = {
   netlify: { data: null, receivedAt: null, error: null },
   /** Per site id: { data, error, loading }. */
   sites: {},
+  /** Netlify action in progress or just finished: { busy: key|null, siteId, result: { ok, text }|null }. */
+  action: { busy: null, siteId: null, result: null },
 };
 
 const app = document.getElementById("app");
@@ -74,7 +77,7 @@ function announce(text) {
 // ---------------------------------------------------------------- Data
 
 function applyBody(body, receivedAt) {
-  state.data = normalizeResponse(body);
+  state.data = withoutServices(normalizeResponse(body));
   state.receivedAt = receivedAt;
 }
 
@@ -136,6 +139,50 @@ async function loadSite(id) {
     state.sites[id] = { ...state.sites[id], error: { code: result.code, status: result.status }, loading: false };
   }
   render();
+}
+
+const ACTION_DONE = {
+  rebuild: "Nieuwe build gestart. Het kan een paar minuten duren voor hij live staat.",
+  restore: "Deploy teruggezet. Hij staat nu live.",
+  lock: "Auto-publish staat uit. Nieuwe deploys gaan niet meer vanzelf live.",
+  unlock: "Auto-publish staat weer aan.",
+  cancel: "Build geannuleerd.",
+};
+
+/**
+ * Runs a Netlify action after the user confirmed it. `key` identifies the button that shows
+ * the busy state. Afterwards the site and the overview are reloaded.
+ */
+async function runAction({ action, siteId, deployId = null, confirmText, key }) {
+  if (state.action.busy) return;
+  if (!confirm(confirmText)) return;
+  state.action = { busy: key, siteId, result: null };
+  render();
+  let ok = false;
+  let text;
+  try {
+    const response = await fetch("/api/netlify/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ action, siteId, deployId }),
+    });
+    const body = await response.json().catch(() => null);
+    ok = response.ok && body?.ok === true;
+    if (!ok && body?.error === "login_required") state.auth = "out";
+    text = ok ? ACTION_DONE[action] : messageFor(body?.error ?? "server", body?.status);
+  } catch {
+    text = messageFor(navigator.onLine === false ? "offline" : "network");
+  }
+  state.action = { busy: null, siteId, result: { ok, text } };
+  announce(text);
+  render();
+  if (ok) {
+    // Netlify needs a moment to update the deploy states.
+    setTimeout(() => {
+      loadSite(siteId);
+      refresh({ quiet: true });
+    }, 1500);
+  }
 }
 
 async function refresh({ quiet = false } = {}) {
@@ -208,6 +255,7 @@ async function logout() {
     testResult: null,
     netlify: { data: null, receivedAt: null, error: null },
     sites: {},
+    action: { busy: null, siteId: null, result: null },
   });
   location.hash = "#/";
   render();
@@ -240,8 +288,8 @@ async function testConnection() {
 // ---------------------------------------------------------------- Views
 
 const TABS = [
-  { id: "limits", href: "#/", icon: "gauge", label: "Limieten" },
-  { id: "netlify", href: "#/netlify", icon: "grid", label: "Netlify" },
+  { id: "netlify", href: "#/", icon: "grid", label: "Netlify" },
+  { id: "usage", href: "#/usage", icon: "gauge", label: "Usage" },
   { id: "settings", href: "#/instellingen", icon: "gear", label: "Instellingen" },
 ];
 
@@ -512,7 +560,7 @@ function netlifyMessage(entry) {
 function limitsView() {
   const now = Date.now();
   const data = state.data;
-  const nodes = [largeTitle("Limieten")];
+  const nodes = [largeTitle("Usage")];
 
   if (!data) {
     if (state.loading || state.auth === "unknown") {
@@ -521,7 +569,7 @@ function limitsView() {
       const message = state.error ? messageFor(state.error.code, state.error.status) : "Nog geen gegevens.";
       nodes.push(emptyState("Geen gegevens", message, h("button", { class: "button", type: "button", onclick: () => refresh() }, "Opnieuw proberen")));
     }
-    return { bar: { title: "Limieten", actions: [refreshButton()] }, body: nodes };
+    return { bar: { title: "Usage", actions: [refreshButton()] }, body: nodes };
   }
 
   nodes.push(
@@ -572,7 +620,7 @@ function limitsView() {
   }
 
   nodes.push(dashboardLinks(data));
-  return { bar: { title: "Limieten", actions: [refreshButton()] }, body: nodes };
+  return { bar: { title: "Usage", actions: [refreshButton()] }, body: nodes };
 }
 
 function netlifyView() {
@@ -586,7 +634,7 @@ function netlifyView() {
 function limitView(id) {
   const now = Date.now();
   const limit = state.data?.limits.find((l) => l.id === id);
-  const bar = { back: "#/", title: limit?.metric ?? "Limiet", always: true };
+  const bar = { back: "#/usage", title: limit?.metric ?? "Limiet", always: true };
   if (!limit) {
     return {
       bar,
@@ -776,13 +824,17 @@ function currentView() {
     case "limit":
       return limitView(state.route.id);
     case "site":
-      return siteView(state.sites[state.route.id], state.route.id, Date.now(), netlifyMessage(state.sites[state.route.id]));
-    case "netlify":
-      return netlifyView();
+      return siteView(state.sites[state.route.id], state.route.id, Date.now(), netlifyMessage(state.sites[state.route.id]), {
+        busy: state.action.busy,
+        result: state.action.siteId === state.route.id ? state.action.result : null,
+        run: runAction,
+      });
+    case "usage":
+      return limitsView();
     case "settings":
       return settingsView();
     default:
-      return limitsView();
+      return netlifyView();
   }
 }
 
@@ -850,7 +902,7 @@ function setupPullToRefresh() {
   window.addEventListener(
     "touchstart",
     (event) => {
-      startY = window.scrollY <= 0 && ["home", "netlify"].includes(state.route.name) && state.auth !== "out" ? event.touches[0].clientY : null;
+      startY = window.scrollY <= 0 && ["netlify", "usage"].includes(state.route.name) && state.auth !== "out" ? event.touches[0].clientY : null;
       distance = 0;
     },
     { passive: true },

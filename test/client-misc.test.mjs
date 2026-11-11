@@ -19,17 +19,17 @@ test("routes and links round-trip ids with | and spaces", () => {
     assert.deepEqual(parseRoute(limitHref(id)), { name: "limit", id });
   }
   assert.equal(limitHref("netlify|Credits"), "#/limit/netlify%7CCredits");
-  assert.deepEqual(parseRoute(""), { name: "home" });
-  assert.deepEqual(parseRoute("#/"), { name: "home" });
+  assert.deepEqual(parseRoute(""), { name: "netlify" });
+  assert.deepEqual(parseRoute("#/"), { name: "netlify" });
+  assert.deepEqual(parseRoute("#/usage"), { name: "usage" });
   assert.deepEqual(parseRoute("#/instellingen"), { name: "settings" });
-  assert.deepEqual(parseRoute("#/netlify"), { name: "netlify" });
-  assert.equal(tabFor(parseRoute("#/")), "limits");
-  assert.equal(tabFor(parseRoute("#/limit/x")), "limits");
+  assert.equal(tabFor(parseRoute("#/")), "netlify");
   assert.equal(tabFor(parseRoute("#/site/x")), "netlify");
-  assert.equal(tabFor(parseRoute("#/netlify")), "netlify");
+  assert.equal(tabFor(parseRoute("#/usage")), "usage");
+  assert.equal(tabFor(parseRoute("#/limit/x")), "usage");
   assert.equal(tabFor(parseRoute("#/instellingen")), "settings");
-  assert.deepEqual(parseRoute("#/limit/"), { name: "home" });
-  assert.deepEqual(parseRoute("#/limit/%E0%A4%A"), { name: "home" });
+  assert.deepEqual(parseRoute("#/limit/"), { name: "netlify" });
+  assert.deepEqual(parseRoute("#/limit/%E0%A4%A"), { name: "netlify" });
 });
 
 test("cache round trip, corrupt data ignored", () => {
