@@ -98,6 +98,14 @@ test("limits: upstream errors are mapped", async () => {
   }
 });
 
+test("limits: a Basic-auth 401 means the endpoint is not live yet", async () => {
+  const fetchImpl = async () =>
+    new Response("Login required", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="Usage dashboard"' } });
+  const res = await handleLimits(limitsRequest(), { env, fetchImpl });
+  assert.equal(res.status, 502);
+  assert.deepEqual(await res.json(), { error: "upstream_not_found" });
+});
+
 test("limits: network failures", async () => {
   const timeout = async () => {
     throw Object.assign(new Error("t"), { name: "TimeoutError" });

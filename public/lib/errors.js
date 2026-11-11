@@ -6,7 +6,7 @@ const MESSAGES = {
   not_configured: "De site is nog niet ingesteld: zet de omgevingsvariabelen in Netlify.",
   upstream_unauthorized: "Het dashboard weigerde de widgettoken (401). Controleer WIDGET_TOKEN in Netlify.",
   upstream_not_configured: "Het dashboard heeft nog geen WIDGET_TOKEN ingesteld (503).",
-  upstream_not_found: "/api/widget niet gevonden op het dashboard (404). Staat die versie al live?",
+  upstream_not_found: "/api/widget staat nog niet live op het dashboard.",
   upstream_timeout: "Het dashboard reageerde niet op tijd.",
   upstream_unreachable: "Het dashboard is niet bereikbaar.",
   upstream_invalid: "Onverwacht antwoord van het dashboard.",

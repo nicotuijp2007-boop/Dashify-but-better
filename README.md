@@ -74,7 +74,7 @@ Let op de credits van Netlify Free:
   openen, elke 5 minuten, en als je zelf ververst.
 
 Het endpoint `/api/widget` moet live staan op het dashboard (aparte taak in de dashboard-repo).
-Tot die tijd geeft de app de melding "/api/widget niet gevonden (404)".
+Tot die tijd geeft de app de melding "/api/widget staat nog niet live op het dashboard".
 
 ## Op je iPhone zetten
 
