@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-11T13:09:00.000Z",
+  "dashboardUrl": "https://usage-dashboard-e00568.netlify.app",
+  "theme": "dark",
+  "summary": { "ok": 1, "warn": 1, "danger": 0, "headline": "1 let op", "extra": [1, 2, 3] },
+  "limits": [
+    {
+      "id": "claude|Opus",
+      "service": "claude",
+      "serviceName": "Claude (Pro)",
+      "metric": "Opus",
+      "leftPct": 25,
+      "usedPct": 75,
+      "used": 75,
+      "limit": 100,
+      "unit": "%",
+      "leftText": "25% over",
+      "level": "critical-ish",
+      "resetsAt": "not a date",
+      "elapsed": 0.5,
+      "runsOutAt": null,
+      "urgency": null,
+      "source": "scraper",
+      "fetchedAt": "2026-11-11T13:09:00.000Z",
+      "stale": false,
+      "trend": "up",
+      "history": [{ "t": "2026-11-10T00:00:00Z", "v": 60 }]
+    },
+    {
+      "metric": "Broken entry without id or numbers"
+    },
+    {
+      "id": "netlify|Credits",
+      "service": "netlify",
+      "serviceName": "Netlify (Free)",
+      "metric": "Credits",
+      "leftPct": 50,
+      "leftText": "150 credits over",
+      "level": "ok",
+      "source": "api",
+      "stale": false
+    }
+  ],
+  "problems": [
+    { "service": "supabase", "name": "Supabase (Free)", "hasValues": false, "message": "Geen verbinding", "code": 42 }
+  ]
+}

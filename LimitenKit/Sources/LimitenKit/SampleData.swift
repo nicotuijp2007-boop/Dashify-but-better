@@ -1,0 +1,163 @@
+import Foundation
+
+/// Sample data for SwiftUI previews. `fullJSON` is identical to the test fixture
+/// `Fixtures/full.json` (a test checks this).
+public enum SampleData {
+    public static let fullJSON = #"""
+{
+  "version": 1,
+  "generatedAt": "2026-11-11T13:09:00.000Z",
+  "dashboardUrl": "https://usage-dashboard-e00568.netlify.app",
+  "summary": {
+    "ok": 4,
+    "warn": 1,
+    "danger": 1,
+    "headline": "1 kritiek, 1 let op · krapst: Claude (Pro) Sessie, 8% over"
+  },
+  "limits": [
+    {
+      "id": "claude|Sessie",
+      "service": "claude",
+      "serviceName": "Claude (Pro)",
+      "metric": "Sessie",
+      "leftPct": 8,
+      "usedPct": 92,
+      "used": 92,
+      "limit": 100,
+      "unit": "%",
+      "leftText": "8% over",
+      "level": "danger",
+      "resetsAt": "2026-11-11T15:00:00.000Z",
+      "elapsed": 0.6,
+      "runsOutAt": "2026-11-11T13:30:00.000Z",
+      "urgency": "Op over ~21m, vóór de reset",
+      "source": "manual",
+      "fetchedAt": "2026-11-11T13:05:00.000Z",
+      "stale": false
+    },
+    {
+      "id": "supabase|Database",
+      "service": "supabase",
+      "serviceName": "Supabase (Free)",
+      "metric": "Database",
+      "leftPct": 22,
+      "usedPct": 78,
+      "used": 390,
+      "limit": 500,
+      "unit": "MB",
+      "leftText": "110 MB over",
+      "level": "warn",
+      "resetsAt": null,
+      "elapsed": null,
+      "runsOutAt": null,
+      "urgency": null,
+      "source": "api",
+      "fetchedAt": "2026-11-11T11:40:00.000Z",
+      "stale": true
+    },
+    {
+      "id": "claude|Week",
+      "service": "claude",
+      "serviceName": "Claude (Pro)",
+      "metric": "Week",
+      "leftPct": 45,
+      "usedPct": 55,
+      "used": 55,
+      "limit": 100,
+      "unit": "%",
+      "leftText": "45% over",
+      "level": "ok",
+      "resetsAt": "2026-11-13T08:00:00.000Z",
+      "elapsed": 0.64,
+      "runsOutAt": null,
+      "urgency": null,
+      "source": "manual",
+      "fetchedAt": "2026-11-11T13:05:00.000Z",
+      "stale": false
+    },
+    {
+      "id": "netlify|Credits",
+      "service": "netlify",
+      "serviceName": "Netlify (Free)",
+      "metric": "Credits",
+      "leftPct": 50,
+      "usedPct": 50,
+      "used": 150,
+      "limit": 300,
+      "unit": "credits",
+      "leftText": "150 credits over",
+      "level": "ok",
+      "resetsAt": "2026-12-09T08:00:00.000Z",
+      "elapsed": 0.07,
+      "runsOutAt": null,
+      "urgency": null,
+      "source": "api",
+      "fetchedAt": "2026-11-11T13:09:00.000Z",
+      "stale": false
+    },
+    {
+      "id": "supabase|Egress",
+      "service": "supabase",
+      "serviceName": "Supabase (Free)",
+      "metric": "Egress",
+      "leftPct": 90,
+      "usedPct": 10,
+      "used": 0.5,
+      "limit": 5,
+      "unit": "GB",
+      "leftText": "4,5 GB over",
+      "level": "ok",
+      "resetsAt": "2026-12-01T00:00:00.000Z",
+      "elapsed": 0.35,
+      "runsOutAt": null,
+      "urgency": null,
+      "source": "api",
+      "fetchedAt": "2026-11-11T11:40:00.000Z",
+      "stale": true
+    },
+    {
+      "id": "supabase|MAU",
+      "service": "supabase",
+      "serviceName": "Supabase (Free)",
+      "metric": "MAU",
+      "leftPct": 99,
+      "usedPct": 1,
+      "used": 512,
+      "limit": 50000,
+      "unit": "gebruikers",
+      "leftText": "49.488 gebruikers over",
+      "level": "ok",
+      "resetsAt": null,
+      "elapsed": null,
+      "runsOutAt": null,
+      "urgency": null,
+      "source": "api",
+      "fetchedAt": "2026-11-11T11:40:00.000Z",
+      "stale": true
+    }
+  ],
+  "problems": [
+    {
+      "service": "supabase",
+      "name": "Supabase (Free)",
+      "hasValues": true,
+      "message": "Supabase API gaf een fout (500); laatst bekende waarden getoond."
+    }
+  ]
+}
+"""#
+
+    /// Decoded `fullJSON`.
+    public static var response: WidgetResponse {
+        // The sample is a fixed, tested string, so decoding cannot fail.
+        try! WidgetResponse.decode(from: Data(fullJSON.utf8))
+    }
+
+    /// The moment the sample was generated, handy as "now" in previews.
+    public static let now: Date = ISO8601.parse("2026-11-11T13:12:00Z")!
+
+    /// An empty response (no limits yet).
+    public static var empty: WidgetResponse {
+        WidgetResponse(generatedAt: now, limits: [])
+    }
+}

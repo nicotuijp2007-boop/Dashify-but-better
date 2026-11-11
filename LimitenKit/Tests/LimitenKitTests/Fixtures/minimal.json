@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "limits": [
+    {
+      "id": "netlify|Bandwidth",
+      "leftPct": 64
+    },
+    {
+      "id": "claude|Week",
+      "service": "claude",
+      "serviceName": "Claude (Pro)",
+      "metric": "Week",
+      "usedPct": 75
+    }
+  ]
+}

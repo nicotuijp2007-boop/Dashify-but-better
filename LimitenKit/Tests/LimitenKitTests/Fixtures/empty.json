@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-11T13:09:00.000Z",
+  "dashboardUrl": "https://usage-dashboard-e00568.netlify.app",
+  "summary": { "ok": 0, "warn": 0, "danger": 0, "headline": "Nog geen gegevens" },
+  "limits": [],
+  "problems": [
+    { "service": "netlify", "name": "Netlify (Free)", "hasValues": false, "message": "Token ontbreekt" }
+  ]
+}

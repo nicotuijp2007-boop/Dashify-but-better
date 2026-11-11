@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-11T13:09:00Z",
+  "dashboardUrl": "https://usage-dashboard-e00568.netlify.app",
+  "summary": { "ok": 1, "warn": 0, "danger": 1, "headline": "1 kritiek · krapst: Netlify (Free) Builds, 0 minuten over" },
+  "limits": [
+    {
+      "id": "netlify|Builds",
+      "service": "netlify",
+      "serviceName": "Netlify (Free)",
+      "metric": "Builds",
+      "leftPct": 0,
+      "usedPct": 100,
+      "used": 300,
+      "limit": 300,
+      "unit": "minuten",
+      "leftText": "0 minuten over",
+      "level": "danger",
+      "resetsAt": "2026-12-09T08:00:00Z",
+      "elapsed": 0.07,
+      "runsOutAt": null,
+      "urgency": "Op, reset over 27d",
+      "source": "api",
+      "fetchedAt": "2026-11-11T13:09:00Z",
+      "stale": false
+    },
+    {
+      "id": "supabase|Storage",
+      "service": "supabase",
+      "serviceName": "Supabase (Free)",
+      "metric": "Storage",
+      "leftPct": 100,
+      "usedPct": 0,
+      "used": 0,
+      "limit": 1,
+      "unit": "GB",
+      "leftText": "1 GB over",
+      "level": "ok",
+      "resetsAt": null,
+      "elapsed": 1,
+      "runsOutAt": null,
+      "urgency": null,
+      "source": "local",
+      "fetchedAt": "2026-11-11T13:00:00Z",
+      "stale": false
+    }
+  ],
+  "problems": []
+}
