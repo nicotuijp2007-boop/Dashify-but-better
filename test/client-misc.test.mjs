@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { clearSnapshot, loadSnapshot, saveSnapshot } from "../public/lib/cache.js";
 import { messageFor, titleFor } from "../public/lib/errors.js";
-import { limitHref, parseRoute } from "../public/lib/router.js";
+import { limitHref, parseRoute, tabFor } from "../public/lib/router.js";
 import { d, fixture } from "./helpers.mjs";
 
 function memoryStorage() {
@@ -22,6 +22,12 @@ test("routes and links round-trip ids with | and spaces", () => {
   assert.deepEqual(parseRoute(""), { name: "home" });
   assert.deepEqual(parseRoute("#/"), { name: "home" });
   assert.deepEqual(parseRoute("#/instellingen"), { name: "settings" });
+  assert.deepEqual(parseRoute("#/netlify"), { name: "netlify" });
+  assert.equal(tabFor(parseRoute("#/")), "limits");
+  assert.equal(tabFor(parseRoute("#/limit/x")), "limits");
+  assert.equal(tabFor(parseRoute("#/site/x")), "netlify");
+  assert.equal(tabFor(parseRoute("#/netlify")), "netlify");
+  assert.equal(tabFor(parseRoute("#/instellingen")), "settings");
   assert.deepEqual(parseRoute("#/limit/"), { name: "home" });
   assert.deepEqual(parseRoute("#/limit/%E0%A4%A"), { name: "home" });
 });

@@ -1,13 +1,13 @@
-// Netlify screens: status, latest deploy, sites grid, and one site's details.
+// Netlify screens in the Dashify style: account, latest deploy, sites grid, status,
+// and one site's details.
 
 import { formatDateTime, timeAgo } from "../lib/format.js";
 import { contextLabel, deployState, deployTitle, formatSeconds, frameworkLabel, hostOf, netlifyStatus } from "../lib/netlify.js";
 import { siteHref } from "../lib/router.js";
-import { h, kindIcon, statusIcon } from "./dom.js";
+import { h, icon, kindIcon, statusIcon } from "./dom.js";
 
 function when(iso, now) {
-  if (!iso) return null;
-  return timeAgo(new Date(iso), now);
+  return iso ? timeAgo(new Date(iso), now) : null;
 }
 
 function stateBadge(deploy, published) {
@@ -15,18 +15,30 @@ function stateBadge(deploy, published) {
   return h("span", { class: `pill pill-${info.kind}` }, kindIcon(info.kind), info.label);
 }
 
-function meta(...parts) {
-  return h("div", { class: "chiprow" }, parts.filter(Boolean).map((p) => h("span", { class: "tag" }, p)));
+function tag(iconName, text) {
+  return text ? h("span", { class: "tag" }, icon(iconName), h("span", {}, text)) : null;
 }
 
-export function statusLine(status) {
+function statusLine(status) {
   const info = netlifyStatus(status);
   if (!info) return null;
   return h("p", { class: "netlify-status", role: "status" }, statusIcon(info.level), h("span", {}, info.label));
 }
 
+function accountRow(account) {
+  if (!account) return null;
+  const initials = (account.name ?? "?").slice(0, 2).toUpperCase();
+  return h(
+    "div",
+    { class: "account" },
+    h("span", { class: "avatar", "aria-hidden": "true" }, initials),
+    h("div", { class: "grow" }, h("div", { class: "metric" }, account.name), account.slug ? h("div", { class: "muted small" }, account.slug) : null),
+    account.plan ? h("span", { class: "plan" }, account.plan) : null,
+  );
+}
+
 /** "Laatste deploy" card, like the top of Dashify. */
-export function latestDeployCard(deploy, now) {
+function latestDeployCard(deploy, now) {
   if (!deploy) return null;
   const published = deploy.state === "ready" && deploy.context === "production";
   return h(
@@ -41,12 +53,20 @@ export function latestDeployCard(deploy, now) {
     ),
     deploy.siteId ? h("a", { class: "site-link", href: siteHref(deploy.siteId) }, deploy.siteName ?? "Site") : null,
     h("p", { class: "deploy-title" }, deployTitle(deploy)),
-    meta(deploy.committer, deploy.branch && `⎇ ${deploy.branch}`, deploy.commitShort, formatSeconds(deploy.deployTime) && `⏱ ${formatSeconds(deploy.deployTime)}`),
+    h(
+      "div",
+      { class: "chiprow" },
+      tag("person", deploy.committer),
+      tag("branch", deploy.branch),
+      tag("commit", deploy.commitShort),
+      tag("timer", formatSeconds(deploy.deployTime)),
+    ),
   );
 }
 
 function screenshot(url, className) {
-  if (!url) return h("div", { class: `${className} shot-empty`, "aria-hidden": "true" });
+  const empty = () => h("div", { class: `${className} shot-empty`, "aria-hidden": "true" }, icon("grid"));
+  if (!url) return empty();
   return h("img", {
     class: className,
     src: url,
@@ -55,21 +75,20 @@ function screenshot(url, className) {
     decoding: "async",
     referrerpolicy: "no-referrer",
     // No broken-image icon when the preview can't load (offline, expired URL).
-    onerror: (event) => event.target.replaceWith(h("div", { class: `${className} shot-empty`, "aria-hidden": "true" })),
+    onerror: (event) => event.target.replaceWith(empty()),
   });
 }
 
-/** Grid of sites with a preview and their latest deploy. */
-export function sitesGrid(sites, now) {
+function sitesGrid(sites, now) {
   return h(
     "ul",
     { class: "site-grid", "aria-label": "Sites" },
-    sites.map((site) => {
+    sites.map((site, i) => {
       const deploy = site.lastDeploy ?? site.published;
       const info = deploy ? deployState(deploy, { published: deploy.id === site.published?.id }) : null;
       return h(
         "li",
-        {},
+        { vars: { "--i": String(i) } },
         h(
           "a",
           {
@@ -77,20 +96,21 @@ export function sitesGrid(sites, now) {
             href: siteHref(site.id),
             "aria-label": `${site.name}${info ? `, laatste deploy ${info.label}, ${when(deploy.createdAt, now) ?? ""}` : ""}`,
           },
-          screenshot(site.screenshotUrl, "shot"),
+          h("div", { class: "shot-wrap" }, screenshot(site.screenshotUrl, "shot")),
           h(
             "div",
             { class: "site-body" },
             h("div", { class: "site-name" }, site.name),
             site.url ? h("div", { class: "site-host" }, hostOf(site.url)) : null,
-            site.repo ? h("div", { class: "muted tiny ellipsis" }, site.repo) : null,
+            site.repo ? h("div", { class: "site-repo" }, icon("branch"), h("span", {}, site.repo)) : null,
           ),
           deploy
             ? h(
                 "div",
                 { class: "site-foot" },
                 kindIcon(info.kind),
-                h("span", { class: "ellipsis" }, deployTitle(deploy), h("br"), h("span", { class: "muted" }, when(deploy.createdAt, now))),
+                h("span", { class: "grow ellipsis" }, h("span", { class: "foot-title" }, deployTitle(deploy)), h("span", { class: "muted" }, when(deploy.createdAt, now))),
+                icon("chevron", "icon chevron"),
               )
             : null,
         ),
@@ -99,70 +119,85 @@ export function sitesGrid(sites, now) {
   );
 }
 
-/** The Netlify section under the limits on the home screen. */
-export function netlifySection(netlify, now, message) {
-  const nodes = [h("h2", { class: "section-title" }, netlify?.data?.account?.name ? `Netlify · ${netlify.data.account.name}` : "Netlify")];
+/** Body of the Netlify tab. */
+export function netlifyBody(netlify, now, message) {
   const data = netlify?.data;
   if (!data) {
-    nodes.push(h("p", { class: "muted small" }, message ?? "Netlify-gegevens ophalen…"));
-    return nodes;
+    return [
+      message ? h("p", { class: "notice", role: "status" }, icon("cloudOff"), h("span", {}, message)) : null,
+      message ? null : h("div", { class: "skeleton skel-row", "aria-hidden": "true" }),
+      message ? null : h("div", { class: "skeleton skel-grid", "aria-hidden": "true" }),
+    ];
   }
-  if (message) nodes.push(h("p", { class: "notice", role: "status" }, h("span", {}, message)));
-  nodes.push(latestDeployCard(data.latestDeploy, now));
-  nodes.push(h("h2", { class: "section-title" }, "Sites ", h("span", { class: "count-badge" }, String(data.sites.length))));
-  nodes.push(data.sites.length ? sitesGrid(data.sites, now) : h("p", { class: "muted" }, "Geen sites."));
-  nodes.push(statusLine(data.status));
-  return nodes;
+  return [
+    accountRow(data.account),
+    message ? h("p", { class: "notice", role: "status" }, icon("cloudOff"), h("span", {}, message)) : null,
+    data.latestDeploy ? h("h2", { class: "section-title" }, "Laatste deploy") : null,
+    latestDeployCard(data.latestDeploy, now),
+    h("h2", { class: "section-title section-big" }, "Sites ", h("span", { class: "count-badge" }, String(data.sites.length))),
+    data.sites.length ? sitesGrid(data.sites, now) : h("p", { class: "muted" }, "Geen sites."),
+    statusLine(data.status),
+  ];
 }
 
-function fact(label, value) {
-  return value == null || value === "" ? null : [h("dt", {}, label), h("dd", {}, value)];
+function infoRow(iconName, label, value) {
+  if (value == null || value === "") return null;
+  return h("div", { class: "info-row" }, icon(iconName, "icon info-icon"), h("dt", {}, label), h("dd", {}, value));
 }
 
 function extLink(href, text) {
   return href ? h("a", { href, target: "_blank", rel: "noopener noreferrer" }, text) : text;
 }
 
-/** One site: preview, published deploy facts and summary, recent deploys. */
+function linkButton(href, text) {
+  return href ? h("a", { class: "link-btn", href, target: "_blank", rel: "noopener noreferrer" }, h("span", {}, text), icon("external")) : null;
+}
+
+/** One site: preview, published deploy facts and summary, recent deploys. Returns { bar, body }. */
 export function siteView(entry, id, now, message) {
-  const nodes = [h("a", { class: "back", href: "#/" }, "‹ Overzicht")];
   const data = entry?.data;
+  const bar = { back: "#/netlify", title: data?.site?.name ?? "Site", always: true };
   if (!data) {
-    nodes.push(
-      h("h1", { class: "detail-title", tabindex: "-1" }, "Site"),
-      h("p", { class: "secondary" }, message ?? "Gegevens ophalen…"),
-    );
-    return nodes;
+    return {
+      bar,
+      body: [
+        h("h1", { class: "detail-title", tabindex: "-1" }, "Site"),
+        message ? h("p", { class: "notice", role: "status" }, icon("cloudOff"), h("span", {}, message)) : h("div", { class: "skeleton skel-hero", "aria-hidden": "true" }),
+      ],
+    };
   }
   const { site, published, deploys } = data;
-  nodes.push(h("h1", { class: "detail-title", tabindex: "-1" }, site.name));
-  if (message) nodes.push(h("p", { class: "notice", role: "status" }, h("span", {}, message)));
-  nodes.push(screenshot(site.screenshotUrl, "shot shot-large"));
+  const body = [
+    h("h1", { class: "detail-title", tabindex: "-1" }, site.name),
+    site.url ? h("a", { class: "site-host big-host", href: site.url, target: "_blank", rel: "noopener noreferrer" }, hostOf(site.url)) : null,
+    message ? h("p", { class: "notice", role: "status" }, icon("cloudOff"), h("span", {}, message)) : null,
+    h("div", { class: "shot-wrap shot-hero" }, screenshot(site.screenshotUrl, "shot")),
+  ];
 
   if (published) {
-    const facts = h("dl", { class: "facts" });
-    for (const row of [
-      fact("Aangemaakt", published.createdAt && `${formatDateTime(new Date(published.createdAt))} (${when(published.createdAt, now)})`),
-      fact("Buildtijd", formatSeconds(published.deployTime)),
-      fact("Framework", frameworkLabel(published.framework)),
-      fact("Link", published.deployUrl && extLink(published.deployUrl, hostOf(published.deployUrl))),
-      fact("Commit", published.commitShort && extLink(published.commitUrl, published.commitShort)),
-      fact("Branch", published.branch),
-      fact("Deploy-ID", published.id),
-    ]) {
-      if (row) facts.append(...row);
-    }
-    nodes.push(
+    body.push(
       h(
         "section",
         { class: "card", "aria-label": "Gepubliceerde deploy" },
         h("div", { class: "deploy-head" }, stateBadge(published, true), published.context ? h("span", { class: "secondary small" }, contextLabel(published.context)) : null),
         h("p", { class: "deploy-title" }, deployTitle(published)),
-        facts,
+      ),
+      h(
+        "dl",
+        { class: "card info-list" },
+        [
+          infoRow("calendar", "Aangemaakt", published.createdAt && `${formatDateTime(new Date(published.createdAt))} · ${when(published.createdAt, now)}`),
+          infoRow("timer", "Buildtijd", formatSeconds(published.deployTime)),
+          infoRow("wand", "Framework", frameworkLabel(published.framework)),
+          infoRow("link", "Link", published.deployUrl && extLink(published.deployUrl, hostOf(published.deployUrl))),
+          infoRow("commit", "Commit", published.commitShort && extLink(published.commitUrl, published.commitShort)),
+          infoRow("branch", "Branch", published.branch),
+          infoRow("fingerprint", "Deploy-ID", h("span", { class: "mono" }, published.id)),
+        ].filter(Boolean),
       ),
     );
     if (published.summary?.length) {
-      nodes.push(
+      body.push(
         h("h2", { class: "section-title" }, "Deploy-samenvatting"),
         h(
           "ul",
@@ -171,7 +206,7 @@ export function siteView(entry, id, now, message) {
             h(
               "li",
               {},
-              m.type === "warning" || m.type === "error" ? statusIcon(m.type === "error" ? "danger" : "warn") : statusIcon("ok"),
+              statusIcon(m.type === "error" ? "danger" : m.type === "warning" ? "warn" : "ok"),
               h("div", {}, h("div", { class: "metric" }, m.title), m.description ? h("div", { class: "secondary small" }, m.description) : null),
             ),
           ),
@@ -179,11 +214,11 @@ export function siteView(entry, id, now, message) {
       );
     }
   } else {
-    nodes.push(h("p", { class: "secondary" }, "Nog geen gepubliceerde deploy."));
+    body.push(h("p", { class: "secondary" }, "Nog geen gepubliceerde deploy."));
   }
 
   if (deploys.length) {
-    nodes.push(
+    body.push(
       h("h2", { class: "section-title" }, "Recente deploys"),
       h(
         "ul",
@@ -198,11 +233,7 @@ export function siteView(entry, id, now, message) {
               "div",
               { class: "grow" },
               h("div", { class: "metric ellipsis" }, deployTitle(d)),
-              h(
-                "div",
-                { class: "muted tiny" },
-                [info.label, contextLabel(d.context), d.branch, d.commitShort, formatSeconds(d.deployTime)].filter(Boolean).join(" · "),
-              ),
+              h("div", { class: "muted tiny" }, [info.label, contextLabel(d.context), d.branch, d.commitShort, formatSeconds(d.deployTime)].filter(Boolean).join(" · ")),
               d.errorMessage ? h("div", { class: "secondary small" }, d.errorMessage) : null,
             ),
             h("span", { class: "muted tiny nowrap" }, when(d.createdAt, now)),
@@ -212,14 +243,14 @@ export function siteView(entry, id, now, message) {
     );
   }
 
-  nodes.push(
+  body.push(
     h(
       "nav",
       { class: "links", "aria-label": "Links" },
-      site.url ? h("a", { href: site.url, target: "_blank", rel: "noopener noreferrer" }, "Open site ↗") : null,
-      site.adminUrl ? h("a", { href: site.adminUrl, target: "_blank", rel: "noopener noreferrer" }, "Open in Netlify ↗") : null,
-      site.repoUrl ? h("a", { href: site.repoUrl, target: "_blank", rel: "noopener noreferrer" }, "Repo ↗") : null,
+      linkButton(site.url, "Open site"),
+      linkButton(site.adminUrl, "Open in Netlify"),
+      linkButton(site.repoUrl, "Repo"),
     ),
   );
-  return nodes;
+  return { bar, body };
 }

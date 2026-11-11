@@ -1,4 +1,4 @@
-// Hash routes: "#/" (overview), "#/limit/<id>", "#/site/<id>", "#/instellingen".
+// Hash routes: "#/" (limits), "#/limit/<id>", "#/netlify", "#/site/<id>", "#/instellingen".
 
 export function parseRoute(hash) {
   const path = (hash ?? "").replace(/^#/, "") || "/";
@@ -14,6 +14,7 @@ export function parseRoute(hash) {
     }
   }
   if (path === "/instellingen") return { name: "settings" };
+  if (path === "/netlify") return { name: "netlify" };
   return { name: "home" };
 }
 
@@ -23,4 +24,11 @@ export function limitHref(id) {
 
 export function siteHref(id) {
   return `#/site/${encodeURIComponent(id)}`;
+}
+
+/** Which tab a route belongs to: limits | netlify | settings. */
+export function tabFor(route) {
+  if (route.name === "netlify" || route.name === "site") return "netlify";
+  if (route.name === "settings") return "settings";
+  return "limits";
 }

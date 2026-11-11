@@ -5,9 +5,9 @@ import { clearSnapshot, loadSnapshot, NETLIFY_KEY, saveSnapshot } from "./lib/ca
 import { ContractError, normalizeResponse } from "./lib/contract.js";
 import { messageFor, titleFor } from "./lib/errors.js";
 import { formatClock, formatNumber, updatedText } from "./lib/format.js";
-import { limitHref, parseRoute } from "./lib/router.js";
-import { ago, badge, h, icon, statusIcon } from "./ui/dom.js";
-import { netlifySection, siteView } from "./ui/netlify-views.js";
+import { limitHref, parseRoute, tabFor } from "./lib/router.js";
+import { ago, badge, gauge, h, icon, serviceTile, statusIcon, statusPill } from "./ui/dom.js";
+import { netlifyBody, siteView } from "./ui/netlify-views.js";
 import {
   LEVELS,
   STATUS,
@@ -24,7 +24,7 @@ import {
   usesFullRow,
 } from "./lib/view.js";
 
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "2.0.0";
 const AUTO_REFRESH_MS = 5 * 60_000;
 const REFRESH_ON_RETURN_MS = 60_000;
 
@@ -239,11 +239,17 @@ async function testConnection() {
 
 // ---------------------------------------------------------------- Views
 
-function topbar(title, { home = false } = {}) {
-  const refreshButton = h(
+const TABS = [
+  { id: "limits", href: "#/", icon: "gauge", label: "Limieten" },
+  { id: "netlify", href: "#/netlify", icon: "grid", label: "Netlify" },
+  { id: "settings", href: "#/instellingen", icon: "gear", label: "Instellingen" },
+];
+
+function refreshButton() {
+  return h(
     "button",
     {
-      class: "icon-button",
+      class: "round-btn",
       type: "button",
       "aria-label": "Vernieuwen",
       "aria-busy": state.loading ? "true" : "false",
@@ -251,17 +257,37 @@ function topbar(title, { home = false } = {}) {
     },
     icon("refresh"),
   );
+}
+
+/** Glass bar at the top: back button, small title, actions. */
+function topBar({ back = null, title = "", always = false, actions = [] } = {}) {
   return h(
     "header",
-    { class: "topbar" },
-    h("h1", { tabindex: "-1" }, title),
-    h(
-      "div",
-      { class: "actions" },
-      home ? refreshButton : null,
-      home ? h("a", { class: "icon-button", href: "#/instellingen", "aria-label": "Instellingen" }, icon("gear")) : null,
+    { class: `bar${always ? " bar-always" : ""}` },
+    h("div", { class: "bar-side" }, back ? h("a", { class: "round-btn", href: back, "aria-label": "Terug" }, icon("back")) : null),
+    h("div", { class: "bar-title", "aria-hidden": "true" }, title),
+    h("div", { class: "bar-side bar-end" }, actions),
+  );
+}
+
+/** Glass tab bar at the bottom. */
+function tabBar(active) {
+  return h(
+    "nav",
+    { class: "tabbar", "aria-label": "Tabbladen" },
+    TABS.map((tab) =>
+      h(
+        "a",
+        { class: "tab", href: tab.href, "aria-current": tab.id === active ? "page" : null },
+        icon(tab.icon),
+        h("span", {}, tab.label),
+      ),
     ),
   );
+}
+
+function largeTitle(text) {
+  return h("h1", { class: "large-title", tabindex: "-1" }, text);
 }
 
 function meter(limit, now) {
@@ -302,6 +328,30 @@ function legend() {
   );
 }
 
+function names(limit) {
+  return h("div", { class: "names" }, h("div", { class: "service" }, limit.serviceName), h("div", { class: "metric" }, limit.metric));
+}
+
+/** The big gauge for the tightest limit. */
+function hero(limit, now) {
+  const g = barGeometry(limit);
+  const sub = limit.urgency ?? (limit.resetsAt ? `Reset ${resetIn(limit, now)}` : null);
+  return h(
+    "a",
+    { class: `hero hero-${limit.level}`, href: limitHref(limit.id), "aria-label": `Krapste limiet: ${accessibilityLabel(limit, now)}` },
+    h(
+      "div",
+      { class: "hero-gauge" },
+      gauge({ fill: g.fill, marker: g.marker, level: limit.level, label: `${limit.leftPct}% over` }),
+      h("div", { class: "hero-center" }, h("div", { class: "hero-pct" }, `${limit.leftPct}%`), h("div", { class: "hero-over" }, "over")),
+    ),
+    h("div", { class: "hero-kicker" }, "Krapste limiet"),
+    h("div", { class: "hero-name" }, serviceTile(limit.service, limit.serviceName), names(limit)),
+    h("div", { class: "hero-meta" }, statusPill(limit.level), h("span", { class: "secondary" }, limit.leftText)),
+    sub ? h("p", { class: "hero-sub" }, sub) : null,
+  );
+}
+
 function fullRow(limit, now, showLegend) {
   const used = usedText(limit);
   const reset = resetIn(limit, now);
@@ -312,7 +362,8 @@ function fullRow(limit, now, showLegend) {
     h(
       "div",
       { class: "row-head" },
-      h("div", {}, h("div", { class: "service" }, limit.serviceName), h("div", { class: "metric" }, limit.metric)),
+      serviceTile(limit.service, limit.serviceName),
+      names(limit),
       h(
         "div",
         { class: "left" },
@@ -337,15 +388,16 @@ function compactRow(limit, now) {
   return h(
     "a",
     { class: "row compact", href: limitHref(limit.id), "aria-label": accessibilityLabel(limit, now) },
-    statusIcon(limit.level),
+    serviceTile(limit.service, limit.serviceName, "tile-sm"),
     h(
-      "span",
-      { class: "name" },
-      h("span", { class: "service" }, limit.serviceName),
-      h("span", { class: "metric" }, limit.metric),
-      limit.stale ? h("span", { class: "muted tiny" }, " · niet ververst") : null,
+      "div",
+      { class: "names" },
+      h("div", { class: "service" }, limit.serviceName),
+      h("div", { class: "metric" }, limit.metric),
+      limit.stale ? h("div", { class: "muted tiny" }, "niet ververst") : null,
     ),
     h("span", { class: "left-main" }, limit.leftText),
+    statusIcon(limit.level),
   );
 }
 
@@ -412,6 +464,10 @@ function staleNotice() {
   );
 }
 
+function linkButton(href, text, iconName = "external") {
+  return h("a", { class: "link-btn", href, target: "_blank", rel: "noopener noreferrer" }, h("span", {}, text), icon(iconName));
+}
+
 function dashboardLinks(data, service) {
   const dashboardUrl = data?.dashboardUrl;
   if (!dashboardUrl) return null;
@@ -419,8 +475,8 @@ function dashboardLinks(data, service) {
   return h(
     "nav",
     { class: "links", "aria-label": "Dashboard" },
-    h("a", { href: dashboardUrl, target: "_blank", rel: "noopener noreferrer" }, "Open dashboard ↗"),
-    details ? h("a", { href: details, target: "_blank", rel: "noopener noreferrer" }, "Details ↗") : null,
+    linkButton(dashboardUrl, "Open dashboard"),
+    details ? linkButton(details, "Details") : null,
   );
 }
 
@@ -435,6 +491,15 @@ function emptyState(title, text, action) {
   );
 }
 
+function skeleton() {
+  return [
+    h("div", { class: "skeleton skel-hero", "aria-hidden": "true" }),
+    h("div", { class: "skeleton skel-row", "aria-hidden": "true" }),
+    h("div", { class: "skeleton skel-row", "aria-hidden": "true" }),
+    h("p", { class: "sr-only", role: "status" }, "Gegevens ophalen…"),
+  ];
+}
+
 /** Light message for the Netlify part: why it is missing or not refreshed. */
 function netlifyMessage(entry) {
   if (!entry?.error) return null;
@@ -444,57 +509,42 @@ function netlifyMessage(entry) {
   return `Niet ververst: ${text}${when}`;
 }
 
-function homeView() {
+function limitsView() {
   const now = Date.now();
   const data = state.data;
-  const nodes = [topbar("Limieten", { home: true })];
+  const nodes = [largeTitle("Limieten")];
 
   if (!data) {
     if (state.loading || state.auth === "unknown") {
-      nodes.push(h("p", { class: "muted" }, "Gegevens ophalen…"));
+      nodes.push(...skeleton());
     } else {
       const message = state.error ? messageFor(state.error.code, state.error.status) : "Nog geen gegevens.";
-      nodes.push(
-        emptyState(
-          "Geen gegevens",
-          message,
-          h("button", { class: "button", type: "button", onclick: () => refresh() }, "Opnieuw proberen"),
-        ),
-      );
+      nodes.push(emptyState("Geen gegevens", message, h("button", { class: "button", type: "button", onclick: () => refresh() }, "Opnieuw proberen")));
     }
-    return nodes;
+    return { bar: { title: "Limieten", actions: [refreshButton()] }, body: nodes };
   }
 
   nodes.push(
-    h(
-      "section",
-      { class: "card", "aria-label": "Samenvatting" },
-      h("p", { class: "headline" }, data.summary.headline),
-      h("p", { class: "updated muted small" }, state.receivedAt ? ago(state.receivedAt) : null),
-      staleNotice(),
-    ),
+    h("p", { class: "subline" }, data.summary.headline),
+    h("p", { class: "updated muted small" }, state.receivedAt ? ago(state.receivedAt) : null),
+    staleNotice(),
   );
 
   if (!data.limits.length) {
     nodes.push(emptyState("Geen limieten", "Het dashboard gaf (nog) geen limieten terug."));
   } else {
+    nodes.push(hero(data.limits[0], now));
     nodes.push(chips(data.limits));
     const visible = filterByLevels(data.limits, state.filter);
     const list = h("ul", { class: "limits", "aria-label": "Limieten, meest urgent eerst" });
     let legendShown = false;
-    for (const limit of visible) {
+    visible.forEach((limit, i) => {
       const full = usesFullRow(limit);
       const showLegend = full && !legendShown && limit.elapsed != null;
       if (showLegend) legendShown = true;
-      list.append(h("li", {}, full ? fullRow(limit, now, showLegend) : compactRow(limit, now)));
-    }
-    nodes.push(
-      h(
-        "section",
-        { class: "card" },
-        visible.length ? list : h("p", { class: "muted" }, "Geen limieten met deze status."),
-      ),
-    );
+      list.append(h("li", { vars: { "--i": String(i) } }, full ? fullRow(limit, now, showLegend) : compactRow(limit, now)));
+    });
+    nodes.push(h("section", { class: "card list-card" }, visible.length ? list : h("p", { class: "muted" }, "Geen limieten met deze status.")));
   }
 
   if (data.problems.length) {
@@ -507,9 +557,14 @@ function homeView() {
           h(
             "li",
             {},
-            h("div", { class: "metric" }, p.name),
-            h("div", { class: "secondary small" }, p.message || "Onbekende fout"),
-            p.hasValues ? h("div", { class: "muted tiny" }, "Laatst bekende waarden worden getoond.") : null,
+            serviceTile(p.service, p.name, "tile-sm"),
+            h(
+              "div",
+              {},
+              h("div", { class: "metric" }, p.name),
+              h("div", { class: "secondary small" }, p.message || "Onbekende fout"),
+              p.hasValues ? h("div", { class: "muted tiny" }, "Laatst bekende waarden worden getoond.") : null,
+            ),
           ),
         ),
       ),
@@ -517,43 +572,67 @@ function homeView() {
   }
 
   nodes.push(dashboardLinks(data));
-  nodes.push(...netlifySection(state.netlify, now, netlifyMessage(state.netlify)));
-  return nodes;
+  return { bar: { title: "Limieten", actions: [refreshButton()] }, body: nodes };
+}
+
+function netlifyView() {
+  const now = Date.now();
+  return {
+    bar: { title: "Netlify", actions: [refreshButton()] },
+    body: [largeTitle("Netlify"), ...netlifyBody(state.netlify, now, netlifyMessage(state.netlify))],
+  };
 }
 
 function limitView(id) {
   const now = Date.now();
   const limit = state.data?.limits.find((l) => l.id === id);
-  const nodes = [h("a", { class: "back", href: "#/" }, "‹ Overzicht")];
+  const bar = { back: "#/", title: limit?.metric ?? "Limiet", always: true };
   if (!limit) {
-    nodes.push(
-      h("h1", { class: "detail-title", tabindex: "-1" }, "Limiet niet gevonden"),
-      h("p", { class: "secondary" }, state.data ? "Deze limiet staat niet (meer) in de gegevens." : "Nog geen gegevens geladen."),
-    );
-    return nodes;
+    return {
+      bar,
+      body: [
+        h("h1", { class: "detail-title", tabindex: "-1" }, "Limiet niet gevonden"),
+        h("p", { class: "secondary" }, state.data ? "Deze limiet staat niet (meer) in de gegevens." : "Nog geen gegevens geladen."),
+      ],
+    };
   }
+  const g = barGeometry(limit);
   const facts = h("dl", { class: "facts" });
   for (const [label, value] of detailRows(limit, now)) {
-    facts.append(h("dt", {}, label), h("dd", {}, value));
+    facts.append(h("div", { class: "fact" }, h("dt", {}, label), h("dd", {}, value)));
   }
-  nodes.push(
-    h("div", { class: "service" }, limit.serviceName),
-    h("h1", { class: "detail-title", tabindex: "-1" }, limit.metric),
-    h(
-      "section",
-      { class: "card", "aria-label": "Wat er over is" },
-      h("p", { class: "big" }, `${limit.leftPct}%`, h("span", { class: "sr-only" }, " over")),
-      h("p", { class: "secondary", style: { margin: "0.25rem 0 0" } }, limit.leftText),
-      meter(limit, now),
-      limit.elapsed != null ? legend() : null,
-      h("p", { class: "meta", style: { marginTop: "0.5rem" } }, badge(limit.level), limit.stale ? h("span", {}, "niet ververst") : null),
-    ),
-    limit.urgency ? h("p", { class: "card urgency urgent" }, limit.urgency) : null,
-    h("section", { class: "card", "aria-label": "Gegevens" }, facts),
-    staleNotice(),
-    dashboardLinks(state.data, limit.service),
+  return {
+    bar,
+    body: [
+      h("div", { class: "detail-head" }, serviceTile(limit.service, limit.serviceName, "tile-lg"), h("div", {}, h("div", { class: "service" }, limit.serviceName), h("h1", { class: "detail-title", tabindex: "-1" }, limit.metric))),
+      h(
+        "section",
+        { class: `hero hero-static hero-${limit.level}`, "aria-label": "Wat er over is" },
+        h(
+          "div",
+          { class: "hero-gauge" },
+          gauge({ fill: g.fill, marker: g.marker, level: limit.level, label: `${limit.leftPct}% over` }),
+          h("div", { class: "hero-center" }, h("div", { class: "hero-pct" }, `${limit.leftPct}%`), h("div", { class: "hero-over" }, "over")),
+        ),
+        h("div", { class: "hero-meta" }, statusPill(limit.level), h("span", { class: "secondary" }, limit.leftText), limit.stale ? h("span", { class: "muted small" }, "niet ververst") : null),
+        h("div", { class: "hero-bar" }, meter(limit, now), limit.elapsed != null ? legend() : null),
+      ),
+      limit.urgency ? h("p", { class: "card urgency urgent" }, limit.urgency) : null,
+      h("section", { class: "card", "aria-label": "Gegevens" }, facts),
+      staleNotice(),
+      dashboardLinks(state.data, limit.service),
+    ],
+  };
+}
+
+function settingsRow(iconName, title, text, action) {
+  return h(
+    "div",
+    { class: "set-row" },
+    h("span", { class: "tile tile-gray tile-sm", "aria-hidden": "true" }, icon(iconName, "tile-glyph")),
+    h("div", { class: "grow" }, h("div", { class: "metric" }, title), text ? h("div", { class: "secondary small" }, text) : null),
+    action ?? null,
   );
-  return nodes;
 }
 
 function settingsView() {
@@ -567,15 +646,10 @@ function settingsView() {
 
   let result = null;
   if (state.testBusy) {
-    result = h("p", { class: "muted small", role: "status" }, "Bezig met testen…");
+    result = h("p", { class: "muted small result", role: "status" }, "Bezig met testen…");
   } else if (state.testResult?.ok) {
     const n = state.testResult.count;
-    result = h(
-      "div",
-      { class: "result", role: "status" },
-      statusIcon("ok"),
-      h("p", {}, `Verbonden. ${formatNumber(n)} ${n === 1 ? "limiet" : "limieten"} opgehaald.`),
-    );
+    result = h("div", { class: "result", role: "status" }, statusIcon("ok"), h("p", {}, `Verbonden. ${formatNumber(n)} ${n === 1 ? "limiet" : "limieten"} opgehaald.`));
   } else if (state.testResult) {
     const { code, status } = state.testResult;
     result = h(
@@ -586,63 +660,74 @@ function settingsView() {
     );
   }
 
-  return [
-    h("a", { class: "back", href: "#/" }, "‹ Overzicht"),
-    h("h1", { class: "detail-title", tabindex: "-1" }, "Instellingen"),
-    h("h2", { class: "section-title" }, "Verbinding"),
-    h(
-      "section",
-      { class: "card stack" },
+  return {
+    bar: { title: "Instellingen" },
+    body: [
+      largeTitle("Instellingen"),
+      h("h2", { class: "section-title" }, "Verbinding"),
       h(
-        "p",
-        { class: "secondary small", style: { margin: "0" } },
-        host ? `Dashboard: ${host}. ` : "",
-        "De widgettoken staat alleen op de server (Netlify-omgevingsvariabele WIDGET_TOKEN), niet op dit toestel.",
+        "section",
+        { class: "card group" },
+        settingsRow(
+          "plug",
+          host ?? "Dashboard",
+          "De widgettoken staat alleen op de server, niet op dit toestel.",
+          h("button", { class: "button small-btn", type: "button", disabled: state.testBusy, onclick: () => testConnection() }, "Testen"),
+        ),
+        result,
       ),
-      h("button", { class: "button", type: "button", disabled: state.testBusy, onclick: () => testConnection() }, "Verbinding testen"),
-      result,
-    ),
-    h("h2", { class: "section-title" }, "Op dit toestel"),
-    h(
-      "section",
-      { class: "card stack" },
+      h("h2", { class: "section-title" }, "Op dit toestel"),
       h(
-        "button",
-        {
-          class: "button",
-          type: "button",
-          onclick: () => {
-            clearSnapshot(storage);
-            clearSnapshot(storage, NETLIFY_KEY);
-            announce("Bewaarde gegevens gewist");
-          },
-        },
-        "Bewaarde gegevens wissen",
+        "section",
+        { class: "card group" },
+        settingsRow(
+          "trash",
+          "Bewaarde gegevens wissen",
+          "Voor offline gebruik bewaarde limieten en Netlify-gegevens.",
+          h(
+            "button",
+            {
+              class: "button small-btn",
+              type: "button",
+              onclick: () => {
+                clearSnapshot(storage);
+                clearSnapshot(storage, NETLIFY_KEY);
+                announce("Bewaarde gegevens gewist");
+              },
+            },
+            "Wissen",
+          ),
+        ),
+        settingsRow(
+          "logout",
+          "Uitloggen",
+          "Op dit toestel; bewaarde gegevens worden ook gewist.",
+          h(
+            "button",
+            {
+              class: "button small-btn",
+              type: "button",
+              onclick: () => {
+                if (confirm("Uitloggen op dit toestel? Bewaarde gegevens worden ook gewist.")) logout();
+              },
+            },
+            "Uitloggen",
+          ),
+        ),
       ),
+      h("h2", { class: "section-title" }, "Op je beginscherm"),
       h(
-        "button",
-        {
-          class: "button destructive",
-          type: "button",
-          onclick: () => {
-            if (confirm("Uitloggen op dit toestel? Bewaarde gegevens worden ook gewist.")) logout();
-          },
-        },
-        "Uitloggen",
+        "section",
+        { class: "card group" },
+        settingsRow(
+          "phone",
+          "Zet op beginscherm",
+          "Open deze site in Safari, tik op Deel en kies ‘Zet op beginscherm’. Hij werkt dan schermvullend en offline. Echte iOS-widgets kan een web-app niet maken; daarvoor is de Scriptable-widget van het dashboard.",
+        ),
       ),
-    ),
-    h("h2", { class: "section-title" }, "Op je beginscherm"),
-    h(
-      "section",
-      { class: "card" },
-      h(
-        "p",
-        { class: "secondary small", style: { margin: "0" } },
-        "Open deze site in Safari, tik op Deel en kies ‘Zet op beginscherm’. De app opent dan schermvullend en werkt ook offline met de laatst bewaarde gegevens. Echte iOS-widgets kan een web-app niet maken; daarvoor is er de Scriptable-widget van het dashboard.",
-      ),
-    ),
-    h("p", { class: "footer" }, `Limieten ${APP_VERSION}`),
-  ];
+      h("p", { class: "footer" }, `Limieten ${APP_VERSION}`),
+    ],
+  };
 }
 
 function loginView() {
@@ -657,7 +742,7 @@ function loginView() {
   const form = h(
     "form",
     {
-      class: "card stack",
+      class: "card stack login-card",
       onsubmit: (event) => {
         event.preventDefault();
         if (input.value) login(input.value);
@@ -665,43 +750,74 @@ function loginView() {
     },
     h("div", { style: { width: "100%" } }, h("label", { for: "password" }, "Wachtwoord"), input),
     state.loginError ? h("p", { id: "login-error", class: "secondary small", role: "alert", style: { margin: "0" } }, state.loginError) : null,
-    h("button", { class: "button primary", type: "submit", disabled: state.loginBusy }, state.loginBusy ? "Bezig…" : "Inloggen"),
+    h("button", { class: "button primary wide", type: "submit", disabled: state.loginBusy }, state.loginBusy ? "Bezig…" : "Inloggen"),
   );
-  return [
-    topbar("Limieten"),
-    h("p", { class: "secondary" }, "Log in om te zien wat er over is van je limieten."),
-    form,
-  ];
+  return {
+    bar: null,
+    body: [
+      h(
+        "div",
+        { class: "login" },
+        h("img", { class: "login-icon", src: "/icons/icon-192.png", alt: "" }),
+        h("h1", { class: "large-title", tabindex: "-1" }, "Limieten"),
+        h("p", { class: "secondary" }, "Log in om te zien wat er over is van je limieten en je Netlify-sites."),
+        form,
+      ),
+    ],
+  };
 }
 
 let lastRouteKey = null;
+let enterTimer = null;
+
+function currentView() {
+  if (state.auth === "out") return loginView();
+  switch (state.route.name) {
+    case "limit":
+      return limitView(state.route.id);
+    case "site":
+      return siteView(state.sites[state.route.id], state.route.id, Date.now(), netlifyMessage(state.sites[state.route.id]));
+    case "netlify":
+      return netlifyView();
+    case "settings":
+      return settingsView();
+    default:
+      return limitsView();
+  }
+}
 
 function render() {
   state.route = parseRoute(location.hash);
-  let nodes;
-  if (state.auth === "out") nodes = loginView();
-  else if (state.route.name === "limit") nodes = limitView(state.route.id);
-  else if (state.route.name === "site") nodes = siteView(state.sites[state.route.id], state.route.id, Date.now(), netlifyMessage(state.sites[state.route.id]));
-  else if (state.route.name === "settings") nodes = settingsView();
-  else nodes = homeView();
+  const view = currentView();
+  const loggedOut = state.auth === "out";
 
   const focused = document.activeElement;
   const focusedKey = focused?.getAttribute?.("aria-label") ?? focused?.textContent;
-  app.replaceChildren(...nodes.flat().filter(Boolean));
+  app.replaceChildren(
+    ...[
+      view.bar ? topBar(view.bar) : null,
+      h("div", { class: "view" }, view.body.flat().filter(Boolean)),
+      loggedOut ? null : tabBar(tabFor(state.route)),
+    ].filter(Boolean),
+  );
+  document.body.classList.toggle("has-tabs", !loggedOut);
 
-  const routeKey = state.auth === "out" ? "login" : `${state.route.name}:${state.route.id ?? ""}`;
+  const routeKey = loggedOut ? "login" : `${state.route.name}:${state.route.id ?? ""}`;
   if (routeKey !== lastRouteKey) {
-    // New screen: move focus to its heading and start at the top.
+    // New screen: play the entry animation once, move focus to its heading, start at the top.
+    app.classList.add("enter");
+    clearTimeout(enterTimer);
+    enterTimer = setTimeout(() => app.classList.remove("enter"), 1200);
     if (lastRouteKey !== null) {
       window.scrollTo(0, 0);
-      app.querySelector("h1")?.focus();
+      app.querySelector("h1")?.focus({ preventScroll: true });
     }
     lastRouteKey = routeKey;
     // Site screens always fetch fresh details; cached ones show meanwhile.
-    if (state.route.name === "site" && state.auth !== "out") loadSite(state.route.id);
+    if (state.route.name === "site" && !loggedOut) loadSite(state.route.id);
   } else if (focused?.tagName === "H1" && !app.contains(focused)) {
     // The heading was re-rendered (for example when data arrived): keep the reader there.
-    app.querySelector("h1")?.focus();
+    app.querySelector("h1")?.focus({ preventScroll: true });
   } else if (focused && focused !== document.body && !app.contains(focused)) {
     // Same screen re-rendered: keep focus on the equivalent control.
     const again = [...app.querySelectorAll("button, a, input")].find(
@@ -709,6 +825,12 @@ function render() {
     );
     again?.focus();
   }
+  updateScrolled();
+}
+
+/** The small bar title appears once the large title has scrolled away. */
+function updateScrolled() {
+  document.body.classList.toggle("scrolled", window.scrollY > 40);
 }
 
 // ---------------------------------------------------------------- Ticker, pull-to-refresh
@@ -728,7 +850,7 @@ function setupPullToRefresh() {
   window.addEventListener(
     "touchstart",
     (event) => {
-      startY = window.scrollY <= 0 && state.route.name === "home" && state.auth !== "out" ? event.touches[0].clientY : null;
+      startY = window.scrollY <= 0 && ["home", "netlify"].includes(state.route.name) && state.auth !== "out" ? event.touches[0].clientY : null;
       distance = 0;
     },
     { passive: true },
@@ -764,6 +886,7 @@ render();
 refresh({ quiet: true });
 
 window.addEventListener("hashchange", render);
+window.addEventListener("scroll", updateScrolled, { passive: true });
 setInterval(tick, 30_000);
 setInterval(() => {
   if (document.visibilityState === "visible") refresh({ quiet: true });
