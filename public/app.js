@@ -1,11 +1,13 @@
 // Limieten PWA. Talks only to this site's own /api/* functions; the widget token stays
 // on the server. All text from the API is inserted with textContent (no innerHTML).
 
-import { clearSnapshot, loadSnapshot, saveSnapshot } from "./lib/cache.js";
+import { clearSnapshot, loadSnapshot, NETLIFY_KEY, saveSnapshot } from "./lib/cache.js";
 import { ContractError, normalizeResponse } from "./lib/contract.js";
 import { messageFor, titleFor } from "./lib/errors.js";
 import { formatClock, formatNumber, updatedText } from "./lib/format.js";
 import { limitHref, parseRoute } from "./lib/router.js";
+import { ago, badge, h, icon, statusIcon } from "./ui/dom.js";
+import { netlifySection, siteView } from "./ui/netlify-views.js";
 import {
   LEVELS,
   STATUS,
@@ -22,7 +24,7 @@ import {
   usesFullRow,
 } from "./lib/view.js";
 
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.1.0";
 const AUTO_REFRESH_MS = 5 * 60_000;
 const REFRESH_ON_RETURN_MS = 60_000;
 
@@ -50,80 +52,16 @@ const state = {
   loginBusy: false,
   testResult: null,
   testBusy: false,
+  /** Netlify overview: { data, receivedAt, error }. */
+  netlify: { data: null, receivedAt: null, error: null },
+  /** Per site id: { data, error, loading }. */
+  sites: {},
 };
 
 const app = document.getElementById("app");
 const live = document.getElementById("live");
 
-// ---------------------------------------------------------------- DOM helpers
-
-function h(tag, attrs = {}, ...children) {
-  const el = document.createElement(tag);
-  for (const [key, value] of Object.entries(attrs)) {
-    if (value == null || value === false) continue;
-    if (key === "class") el.className = value;
-    else if (key === "style") Object.assign(el.style, value);
-    else if (key.startsWith("on")) el.addEventListener(key.slice(2), value);
-    else if (key === "text") el.textContent = value;
-    else el.setAttribute(key, value === true ? "" : String(value));
-  }
-  for (const child of children.flat()) {
-    if (child == null || child === false) continue;
-    el.append(child instanceof Node ? child : document.createTextNode(String(child)));
-  }
-  return el;
-}
-
-const SVG_NS = "http://www.w3.org/2000/svg";
-
-function svg(viewBox, className, parts) {
-  const el = document.createElementNS(SVG_NS, "svg");
-  el.setAttribute("viewBox", viewBox);
-  el.setAttribute("aria-hidden", "true");
-  el.setAttribute("focusable", "false");
-  if (className) el.setAttribute("class", className);
-  for (const [tag, attrs] of parts) {
-    const child = document.createElementNS(SVG_NS, tag);
-    for (const [k, v] of Object.entries(attrs)) child.setAttribute(k, v);
-    el.append(child);
-  }
-  return el;
-}
-
-/** Status shape, never color alone: a check, an exclamation mark, or a cross. */
-function statusIcon(level) {
-  const parts = [["circle", { cx: "8", cy: "8", r: "8", fill: "currentColor" }]];
-  if (level === "ok") {
-    parts.push(["path", { d: "M4.5 8.2 7 10.6l4.6-5", stroke: "#fff", "stroke-width": "1.8", fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round" }]);
-  } else if (level === "warn") {
-    parts.push(["path", { d: "M8 4v5", stroke: "#0b0b0b", "stroke-width": "1.8", "stroke-linecap": "round" }]);
-    parts.push(["circle", { cx: "8", cy: "11.6", r: "1.1", fill: "#0b0b0b" }]);
-  } else {
-    parts.push(["path", { d: "m5.3 5.3 5.4 5.4m0-5.4-5.4 5.4", stroke: "#fff", "stroke-width": "1.8", "stroke-linecap": "round" }]);
-  }
-  return svg("0 0 16 16", `status-icon ${level}`, parts);
-}
-
-function badge(level) {
-  return h("span", { class: "badge" }, statusIcon(level), STATUS[level].label);
-}
-
-const ICONS = {
-  refresh: [["path", { d: "M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }]],
-  gear: [
-    ["circle", { cx: "12", cy: "12", r: "3", fill: "none", stroke: "currentColor", "stroke-width": "2" }],
-    ["path", { d: "M12 2v3m0 14v3M4.2 4.2l2.1 2.1m11.4 11.4 2.1 2.1M2 12h3m14 0h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round" }],
-  ],
-  cloudOff: [["path", { d: "M3 3l18 18M8 7.5A5 5 0 0 1 17 10h1a4 4 0 0 1 2.4 7.2M17 18H7a4 4 0 0 1-1.2-7.8", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }]],
-  gauge: [
-    ["path", { d: "M4 17a8 8 0 1 1 16 0", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round" }],
-    ["path", { d: "M12 17l4-5", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round" }],
-  ],
-};
-
-function icon(name) {
-  return svg("0 0 24 24", null, ICONS[name]);
-}
+// ---------------------------------------------------------------- Live region
 
 function announce(text) {
   live.textContent = "";
@@ -131,11 +69,6 @@ function announce(text) {
   setTimeout(() => {
     live.textContent = text;
   }, 50);
-}
-
-/** Text that shows a relative time and is refreshed by the ticker. */
-function ago(date) {
-  return h("span", { "data-ago": date.toISOString() }, updatedText(date));
 }
 
 // ---------------------------------------------------------------- Data
@@ -147,19 +80,24 @@ function applyBody(body, receivedAt) {
 
 function loadFromCache() {
   const snapshot = loadSnapshot(storage);
-  if (!snapshot) return;
-  try {
-    applyBody(snapshot.body, snapshot.savedAt);
-  } catch {
-    clearSnapshot(storage);
+  if (snapshot) {
+    try {
+      applyBody(snapshot.body, snapshot.savedAt);
+    } catch {
+      clearSnapshot(storage);
+    }
+  }
+  const netlify = loadSnapshot(storage, NETLIFY_KEY);
+  if (netlify && Array.isArray(netlify.body.sites)) {
+    state.netlify = { data: netlify.body, receivedAt: netlify.savedAt, error: null };
   }
 }
 
-/** Calls /api/limits. Returns { ok, body } or { ok: false, code, status }. */
-async function fetchLimits() {
+/** Calls one of this site's /api/* endpoints. Returns { ok, body } or { ok: false, code, status }. */
+async function fetchJson(url) {
   let response;
   try {
-    response = await fetch("/api/limits", { headers: { Accept: "application/json" }, cache: "no-store" });
+    response = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
   } catch {
     return { ok: false, code: navigator.onLine === false ? "offline" : "network" };
   }
@@ -173,12 +111,40 @@ async function fetchLimits() {
   return { ok: false, code: body?.error ?? "server", status: body?.status ?? response.status };
 }
 
+function fetchLimits() {
+  return fetchJson("/api/limits");
+}
+
+function applyNetlify(result) {
+  if (result.ok && Array.isArray(result.body?.sites)) {
+    const now = new Date();
+    state.netlify = { data: result.body, receivedAt: now, error: null };
+    saveSnapshot(storage, result.body, now, NETLIFY_KEY);
+  } else if (!result.ok && result.code !== "login_required") {
+    state.netlify = { ...state.netlify, error: { code: result.code, status: result.status } };
+  }
+}
+
+async function loadSite(id) {
+  const entry = state.sites[id] ?? {};
+  if (entry.loading) return;
+  state.sites[id] = { ...entry, loading: true };
+  const result = await fetchJson(`/api/netlify?view=site&id=${encodeURIComponent(id)}`);
+  if (result.ok) state.sites[id] = { data: result.body, error: null, loading: false };
+  else {
+    if (result.code === "login_required") state.auth = "out";
+    state.sites[id] = { ...state.sites[id], error: { code: result.code, status: result.status }, loading: false };
+  }
+  render();
+}
+
 async function refresh({ quiet = false } = {}) {
   if (state.loading || state.auth === "out") return;
   state.loading = true;
   render();
-  const result = await fetchLimits();
+  const [result, netlify] = await Promise.all([fetchLimits(), fetchJson("/api/netlify?view=overview")]);
   state.loading = false;
+  applyNetlify(netlify);
   if (result.ok) {
     try {
       const now = new Date();
@@ -233,7 +199,16 @@ async function logout() {
     // The cookie stays until it expires; local data is cleared anyway.
   }
   clearSnapshot(storage);
-  Object.assign(state, { data: null, receivedAt: null, error: null, auth: "out", testResult: null });
+  clearSnapshot(storage, NETLIFY_KEY);
+  Object.assign(state, {
+    data: null,
+    receivedAt: null,
+    error: null,
+    auth: "out",
+    testResult: null,
+    netlify: { data: null, receivedAt: null, error: null },
+    sites: {},
+  });
   location.hash = "#/";
   render();
 }
@@ -460,6 +435,15 @@ function emptyState(title, text, action) {
   );
 }
 
+/** Light message for the Netlify part: why it is missing or not refreshed. */
+function netlifyMessage(entry) {
+  if (!entry?.error) return null;
+  const text = messageFor(entry.error.code, entry.error.status);
+  if (!entry.data) return text;
+  const when = entry.receivedAt ? ` Laatste gegevens van ${formatClock(entry.receivedAt)}.` : "";
+  return `Niet ververst: ${text}${when}`;
+}
+
 function homeView() {
   const now = Date.now();
   const data = state.data;
@@ -533,6 +517,7 @@ function homeView() {
   }
 
   nodes.push(dashboardLinks(data));
+  nodes.push(...netlifySection(state.netlify, now, netlifyMessage(state.netlify)));
   return nodes;
 }
 
@@ -628,6 +613,7 @@ function settingsView() {
           type: "button",
           onclick: () => {
             clearSnapshot(storage);
+            clearSnapshot(storage, NETLIFY_KEY);
             announce("Bewaarde gegevens gewist");
           },
         },
@@ -695,6 +681,7 @@ function render() {
   let nodes;
   if (state.auth === "out") nodes = loginView();
   else if (state.route.name === "limit") nodes = limitView(state.route.id);
+  else if (state.route.name === "site") nodes = siteView(state.sites[state.route.id], state.route.id, Date.now(), netlifyMessage(state.sites[state.route.id]));
   else if (state.route.name === "settings") nodes = settingsView();
   else nodes = homeView();
 
@@ -710,6 +697,11 @@ function render() {
       app.querySelector("h1")?.focus();
     }
     lastRouteKey = routeKey;
+    // Site screens always fetch fresh details; cached ones show meanwhile.
+    if (state.route.name === "site" && state.auth !== "out") loadSite(state.route.id);
+  } else if (focused?.tagName === "H1" && !app.contains(focused)) {
+    // The heading was re-rendered (for example when data arrived): keep the reader there.
+    app.querySelector("h1")?.focus();
   } else if (focused && focused !== document.body && !app.contains(focused)) {
     // Same screen re-rendered: keep focus on the equivalent control.
     const again = [...app.querySelectorAll("button, a, input")].find(

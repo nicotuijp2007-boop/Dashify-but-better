@@ -2,7 +2,7 @@
 // deploy is picked up right away), cache as fallback. /api/* is never cached here; the
 // app keeps its own copy of the last good response.
 
-const CACHE = "limieten-shell-v1";
+const CACHE = "limieten-shell-v2";
 const SHELL = [
   "/",
   "/index.html",
@@ -14,6 +14,9 @@ const SHELL = [
   "/lib/format.js",
   "/lib/router.js",
   "/lib/view.js",
+  "/lib/netlify.js",
+  "/ui/dom.js",
+  "/ui/netlify-views.js",
   "/manifest.webmanifest",
   "/icons/icon.svg",
   "/icons/apple-touch-icon.png",

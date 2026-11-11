@@ -29,7 +29,7 @@ iPhone (PWA)  --cookie-->  Netlify Function /api/limits  --Bearer WIDGET_TOKEN--
 | --- | --- |
 | `public/` | De PWA: `index.html`, `app.js`, `styles.css`, service worker, manifest, iconen |
 | `public/lib/` | Pure logica (contract, opmaak, weergaveregels, cache, routes), ook gebruikt door de tests |
-| `netlify/functions/` | `limits.mjs` (`GET /api/limits`), `login.mjs` (`/api/login`), `logout.mjs` (`/api/logout`) |
+| `netlify/functions/` | `limits.mjs` (`GET /api/limits`), `netlify.mjs` (`GET /api/netlify`), `login.mjs`, `logout.mjs` |
 | `netlify/lib/` | Configuratie, sessie-cookie, JSON-hulpjes |
 | `test/` | Tests (`node --test`) met JSON-fixtures volgens contract v1 |
 | `scripts/` | Lokale dev-server; script dat de PNG-iconen maakt |
@@ -46,6 +46,11 @@ iPhone (PWA)  --cookie-->  Netlify Function /api/limits  --Bearer WIDGET_TOKEN--
   Daaronder staan links naar het dashboard (en "Details" voor Claude).
 - **Offline of fout:** je ziet de laatst bewaarde gegevens met een lichte melding en het tijdstip.
   Rode blokken zijn er niet.
+- **Netlify (zoals Dashify, alleen kijken):** onder je limieten staan de laatste deploy (status,
+  context, site, commitbericht, auteur, branch, commit, buildtijd), al je sites met een preview en
+  hun laatste deploy, en de status van Netlify zelf. Tik op een site voor de gepubliceerde deploy
+  (aangemaakt, buildtijd, framework, link, commit, branch, deploy-ID), de deploy-samenvatting en de
+  recente deploys.
 - **Instellingen:** "Verbinding testen" laat duidelijk zien of het gelukt is, of de token werd
   geweigerd (401), of dat er een netwerkfout was. Verder: bewaarde gegevens wissen en uitloggen.
 - **Weergave:** zoals het dashboard toont de app altijd wat er over is, en elke status als icoon
@@ -63,6 +68,7 @@ iPhone (PWA)  --cookie-->  Netlify Function /api/limits  --Bearer WIDGET_TOKEN--
    | `SITE_PASSWORD` | Een lang wachtwoord om in te loggen (bijvoorbeeld vier losse woorden) |
    | `WIDGET_TOKEN` | Dezelfde waarde als `WIDGET_TOKEN` op je dashboard-site |
    | `DASHBOARD_URL` | Optioneel. Standaard `https://usage-dashboard-e00568.netlify.app` |
+   | `NETLIFY_TOKEN` | Netlify-token voor het Netlify-deel (sites en deploys). Alleen leesverzoeken worden gedaan |
 
    Markeer `SITE_PASSWORD` en `WIDGET_TOKEN` als *secret*. Zet ze nooit in de code of in een chat.
 3. Start een deploy (**Deploys > Trigger deploy**). Daarna open je de site-URL en log je in.
@@ -123,5 +129,7 @@ offline nodig is, zet het dan in de lijst `SHELL` in `public/sw.js` en verhoog `
 ## Geheimen
 
 - Geen tokens of wachtwoorden in de repo. `.env`-bestanden staan in `.gitignore`.
+- `NETLIFY_TOKEN` blijft op de server. `/api/netlify` doet alleen vaste GET-verzoeken en stuurt
+  alleen een vaste selectie velden door (geen omgevingsvariabelen of build-instellingen).
 - `WIDGET_TOKEN` gaat alleen van de Netlify Function naar het dashboard, in de
   `Authorization`-header. Hij komt nooit in de browser, in een URL of in een antwoord.

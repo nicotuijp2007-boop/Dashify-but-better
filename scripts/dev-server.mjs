@@ -1,7 +1,7 @@
 // Local development server: serves public/, runs the Netlify Functions, and (unless
 // DASHBOARD_URL is set) fakes the dashboard's /api/widget with a test fixture.
 //
-//   npm run dev                         -> http://localhost:8888, password "dev"
+//   npm run dev                         -> http://localhost:8888, password "dev" (Netlify API faked too)
 //   FIXTURE=edge-zero-hundred npm run dev
 //   DASHBOARD_URL=https://... WIDGET_TOKEN=... SITE_PASSWORD=... npm run dev  (real dashboard)
 
@@ -12,6 +12,8 @@ import { fileURLToPath } from "node:url";
 import { handleLimits } from "../netlify/functions/limits.mjs";
 import { handleLogin } from "../netlify/functions/login.mjs";
 import { handleLogout } from "../netlify/functions/logout.mjs";
+import { handleNetlify } from "../netlify/functions/netlify.mjs";
+import { fakeNetlifyFetch } from "../test/netlify-fake.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const port = Number(process.env.PORT ?? 8888);
@@ -23,7 +25,10 @@ const env = {
   SITE_PASSWORD: process.env.SITE_PASSWORD ?? "dev",
   WIDGET_TOKEN: process.env.WIDGET_TOKEN ?? fakeToken,
   DASHBOARD_URL: process.env.DASHBOARD_URL ?? `http://localhost:${port}/__fake-dashboard`,
+  NETLIFY_TOKEN: process.env.NETLIFY_TOKEN ?? "fake-netlify-token",
 };
+// Without a real NETLIFY_TOKEN, the Netlify API is faked with test/fixtures/netlify.
+const netlifyFetch = process.env.NETLIFY_TOKEN ? fetch : fakeNetlifyFetch();
 const usesFake = !process.env.DASHBOARD_URL;
 
 const TYPES = {
@@ -75,6 +80,7 @@ const routes = {
   "/api/limits": handleLimits,
   "/api/login": handleLogin,
   "/api/logout": handleLogout,
+  "/api/netlify": (request, options) => handleNetlify(request, { ...options, fetchImpl: netlifyFetch }),
 };
 
 createServer(async (req, res) => {

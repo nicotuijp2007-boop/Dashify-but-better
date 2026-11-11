@@ -15,11 +15,19 @@ const MESSAGES = {
   offline: "Geen internetverbinding.",
   network: "Netwerkfout.",
   server: "Onverwachte fout van deze site.",
+  netlify_not_configured: "Zet NETLIFY_TOKEN op deze site om je Netlify-sites te zien.",
+  netlify_unauthorized: "Netlify weigerde de token (NETLIFY_TOKEN).",
+  netlify_not_found: "Niet gevonden in je Netlify-account.",
+  netlify_timeout: "Netlify reageerde niet op tijd.",
+  netlify_unreachable: "Netlify is niet bereikbaar.",
+  netlify_invalid: "Onverwacht antwoord van Netlify.",
+  netlify_status: "Onverwachte fout van Netlify.",
+  bad_request: "Ongeldig verzoek.",
 };
 
 export function messageFor(code, status) {
   const base = MESSAGES[code] ?? MESSAGES.server;
-  return code === "upstream_status" && status ? `${base} (HTTP ${status})` : base;
+  return (code === "upstream_status" || code === "netlify_status") && status ? `${base} (HTTP ${status})` : base;
 }
 
 /** Short title for the connection test. */

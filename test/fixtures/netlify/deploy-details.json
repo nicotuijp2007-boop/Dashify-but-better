@@ -1,0 +1,91 @@
+{
+  "6af489e879d43befe5e13c82": {
+    "id": "6af489e879d43befe5e13c82",
+    "site_id": "400c3de6-bdbf-4cd3-8a07-9a9242f9f874",
+    "name": "usage-dashboard-e00568",
+    "state": "ready",
+    "context": "production",
+    "branch": "main",
+    "commit_ref": "9ae7482d921298be4413392868d9eef8dbadfe32",
+    "commit_url": "https://github.com/nicotuijp2007-boop/overvieuw-/commit/9ae7482d921298be4413392868d9eef8dbadfe32",
+    "committer": "nicotuijp2007-boop",
+    "title": "Leave out the cookie login for now (to be done with Supabase later)",
+    "commit_message": null,
+    "created_at": "2026-11-11T15:29:44.139Z",
+    "published_at": "2026-11-11T15:30:14.543Z",
+    "deploy_time": 27,
+    "framework": "next",
+    "deploy_ssl_url": "https://main--usage-dashboard-e00568.netlify.app",
+    "links": {
+      "permalink": "https://6af489e879d43befe5e13c82--usage-dashboard-e00568.netlify.app",
+      "alias": "https://usage-dashboard-e00568.netlify.app",
+      "branch": null
+    },
+    "manual_deploy": false,
+    "error_message": null,
+    "summary": {
+      "status": "ready",
+      "messages": [
+        {
+          "type": "info",
+          "title": "4 new files uploaded",
+          "description": "4 assets changed.",
+          "details": null
+        },
+        {
+          "type": "info",
+          "title": "3 redirect rules processed",
+          "description": "All redirect rules deployed without errors.",
+          "details": ""
+        },
+        {
+          "type": "info",
+          "title": "1 header rule processed",
+          "description": "All header rules deployed without errors.",
+          "details": ""
+        },
+        {
+          "type": "info",
+          "title": "1 function deployed",
+          "description": "We have deployed 1 function. [Visit your Functions](/projects/usage-dashboard-e00568/logs/functions) for more information.",
+          "details": null
+        },
+        {
+          "type": "warning",
+          "title": "1 edge function deployed",
+          "description": "We have deployed 1 edge function.",
+          "details": null
+        }
+      ]
+    },
+    "screenshot_url": "https://d33wubrfki0l68.cloudfront.net/6af489e879d43befe5e13c82/screenshot_2026-11-11-15-30-15-0000.webp",
+    "available_functions": [
+      {
+        "n": "___netlify-server-handler"
+      }
+    ]
+  },
+  "6af3c0aa1b2c3d4e5f607182": {
+    "id": "6af3c0aa1b2c3d4e5f607182",
+    "site_id": "9ebc9459-e904-4899-be57-f7959a12f4e2",
+    "name": "stalwart-sprite-de8731",
+    "state": "ready",
+    "context": "production",
+    "branch": "main",
+    "commit_ref": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d",
+    "commit_url": "https://github.com/nicotuijp2007-boop/striveclone/commit/1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d",
+    "committer": "nicotuijp2007-boop",
+    "title": "Merge pull request #12 from nicotuijp2007-boop/routines",
+    "created_at": "2026-11-10T17:05:00.000Z",
+    "published_at": "2026-11-10T17:06:00.000Z",
+    "deploy_time": 41,
+    "framework": "vite",
+    "deploy_ssl_url": "https://main--stalwart-sprite-de8731.netlify.app",
+    "links": {
+      "permalink": "https://6af3c0aa1b2c3d4e5f607182--stalwart-sprite-de8731.netlify.app"
+    },
+    "manual_deploy": false,
+    "error_message": null,
+    "summary": null
+  }
+}

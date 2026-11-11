@@ -1,15 +1,16 @@
-// Hash routes: "#/" (overview), "#/limit/<id>" (detail), "#/instellingen".
+// Hash routes: "#/" (overview), "#/limit/<id>", "#/site/<id>", "#/instellingen".
 
 export function parseRoute(hash) {
   const path = (hash ?? "").replace(/^#/, "") || "/";
-  if (path.startsWith("/limit/")) {
-    const encoded = path.slice("/limit/".length);
-    if (encoded) {
-      try {
-        return { name: "limit", id: decodeURIComponent(encoded) };
-      } catch {
-        return { name: "home" };
-      }
+  for (const name of ["limit", "site"]) {
+    const prefix = `/${name}/`;
+    if (!path.startsWith(prefix)) continue;
+    const encoded = path.slice(prefix.length);
+    if (!encoded) break;
+    try {
+      return { name, id: decodeURIComponent(encoded) };
+    } catch {
+      return { name: "home" };
     }
   }
   if (path === "/instellingen") return { name: "settings" };
@@ -18,4 +19,8 @@ export function parseRoute(hash) {
 
 export function limitHref(id) {
   return `#/limit/${encodeURIComponent(id)}`;
+}
+
+export function siteHref(id) {
+  return `#/site/${encodeURIComponent(id)}`;
 }

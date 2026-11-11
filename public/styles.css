@@ -583,3 +583,182 @@ input[type="password"] {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------- Netlify */
+.status-icon.neutral {
+  color: var(--muted);
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.pill .status-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.deploy-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+.push {
+  margin-left: auto;
+}
+.site-link {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-weight: 600;
+}
+.deploy-title {
+  margin: 0.375rem 0 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.chiprow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+}
+.tag {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--secondary);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.count-badge {
+  display: inline-block;
+  min-width: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--border);
+  color: var(--text);
+  text-align: center;
+}
+.site-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+.site-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+}
+.site-card:hover {
+  text-decoration: none;
+}
+.shot {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: top;
+  background: var(--grid);
+}
+.shot-large {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+.shot-empty {
+  background: repeating-linear-gradient(45deg, var(--grid), var(--grid) 6px, transparent 6px, transparent 12px);
+}
+.site-body {
+  padding: 0.625rem 0.75rem 0.25rem;
+  min-width: 0;
+}
+.site-name {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.site-host {
+  color: var(--accent);
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.site-foot {
+  display: flex;
+  gap: 0.375rem;
+  align-items: flex-start;
+  margin-top: auto;
+  padding: 0.5rem 0.75rem 0.75rem;
+  border-top: 1px solid var(--grid);
+  font-size: 0.75rem;
+  min-width: 0;
+}
+.site-foot .status-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-top: 0.1rem;
+}
+.ellipsis {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nowrap {
+  white-space: nowrap;
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.netlify-status {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  margin: 1.5rem auto 0;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+.summary,
+.deploys {
+  list-style: none;
+  padding: 1rem;
+}
+.summary li,
+.deploys li {
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+}
+.summary li + li,
+.deploys li + li {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--grid);
+}
+.summary .status-icon,
+.deploys .status-icon {
+  margin-top: 0.2rem;
+}
+.facts a {
+  overflow-wrap: anywhere;
+}
