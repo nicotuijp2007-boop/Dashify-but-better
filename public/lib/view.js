@@ -110,8 +110,8 @@ export function detailsUrl(dashboardUrl, service) {
   return new URL(path, dashboardUrl).toString();
 }
 
-/** Services the app does not show (their limits and problems are left out). */
-export const HIDDEN_SERVICES = new Set(["supabase"]);
+/** Services the app does not show (their limits and problems are left out): only Netlify usage stays. */
+export const HIDDEN_SERVICES = new Set(["supabase", "claude"]);
 
 /**
  * The response without the hidden services. When something was left out, the counts and

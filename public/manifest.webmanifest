@@ -1,7 +1,7 @@
 {
   "name": "Limieten",
   "short_name": "Limieten",
-  "description": "Wat er over is van je limieten: Claude, Supabase en Netlify.",
+  "description": "Je Netlify-sites, deploys en credits in één app.",
   "lang": "nl",
   "start_url": "/",
   "scope": "/",

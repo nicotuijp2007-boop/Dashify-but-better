@@ -1,7 +1,7 @@
 # Limieten
 
-Een web-app (PWA) op Netlify die laat zien wat er **over** is van je limieten: Claude Pro,
-Supabase Free en Netlify Free. Hij leest het alleen-lezen endpoint `GET /api/widget` van je
+Een web-app (PWA) op Netlify voor je Netlify-account, zoals Dashify: sites, deploys, acties, en
+wat er **over** is van je Netlify-limieten (zoals de credits). Hij leest het alleen-lezen endpoint `GET /api/widget` van je
 dashboard ([overvieuw-](https://github.com/nicotuijp2007-boop/overvieuw-), contract v1). Hij
 praat nooit rechtstreeks met Netlify, Supabase of Claude.
 
@@ -49,7 +49,8 @@ Drie tabs onderin: **Netlify**, **Usage** en **Instellingen**.
   - *Auto-publish aan/uit*: nieuwe deploys wel of niet vanzelf live zetten;
   - *Annuleer*: een build die nog loopt stoppen.
 - **Usage**: drie kleine meters naast elkaar voor je krapste limieten (passen zonder scrollen), statuschips om te filteren, en al je limieten
-  (zoals de Netlify-credits) in dezelfde volgorde als het dashboard. Supabase wordt niet getoond.
+  van Netlify (zoals de credits) in dezelfde volgorde als het dashboard. Claude en Supabase worden
+  niet getoond.
   Tik op een limiet voor de details.
 - **Offline of fout:** je ziet de laatst bewaarde gegevens met een lichte melding en het tijdstip.
 - **Weergave:** donker als basis met een turquoise accent, licht volgt het toestel. Status altijd

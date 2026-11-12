@@ -94,11 +94,11 @@ test("details link only for services that have one", () => {
   assert.equal(detailsUrl(null, "claude"), null);
 });
 
-test("Supabase is left out, counts and headline recomputed", () => {
+test("Supabase and Claude are left out, counts and headline recomputed", () => {
   const r = withoutServices(normalizeResponse(fixture("full")));
-  assert.deepEqual(r.limits.map((l) => l.id), ["claude|Sessie", "claude|Week", "netlify|Credits"]);
+  assert.deepEqual(r.limits.map((l) => l.id), ["netlify|Credits"]);
   assert.deepEqual(r.problems, []);
-  assert.deepEqual(r.summary, { ok: 2, warn: 0, danger: 1, headline: "1 kritiek · krapst: Claude (Pro) Sessie, 8% over" });
+  assert.deepEqual(r.summary, { ok: 1, warn: 0, danger: 0, headline: "Alles binnen marge · krapst: Netlify (Free) Credits, 150 credits over" });
   const untouched = normalizeResponse(fixture("contract-example"));
   untouched.problems = [];
   assert.equal(withoutServices(untouched), untouched, "same object when nothing is hidden");
