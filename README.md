@@ -48,7 +48,7 @@ Drie tabs onderin: **Netlify**, **Usage** en **Instellingen**.
   - *Zet live*: een eerdere geslaagde deploy terugzetten (geen nieuwe build);
   - *Auto-publish aan/uit*: nieuwe deploys wel of niet vanzelf live zetten;
   - *Annuleer*: een build die nog loopt stoppen.
-- **Usage**: een grote meter met je krapste limiet, statuschips om te filteren, en al je limieten
+- **Usage**: drie kleine meters naast elkaar voor je krapste limieten (passen zonder scrollen), statuschips om te filteren, en al je limieten
   (zoals de Netlify-credits) in dezelfde volgorde als het dashboard. Supabase wordt niet getoond.
   Tik op een limiet voor de details.
 - **Offline of fout:** je ziet de laatst bewaarde gegevens met een lichte melding en het tijdstip.

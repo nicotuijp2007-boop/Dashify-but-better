@@ -153,10 +153,9 @@ const ARC = `M ${sx} ${sy} A ${R} ${R} 0 1 1 ${ex} ${ey}`;
  */
 export function gauge({ fill, marker, level, label }) {
   const pct = Math.round(Math.min(Math.max(fill, 0), 1) * 100);
-  const parts = [
-    ["path", { d: ARC, class: "gauge-track", pathLength: "100" }],
-    ["path", { d: ARC, class: "gauge-fill", pathLength: "100", "stroke-dasharray": `${pct} 100` }],
-  ];
+  const parts = [["path", { d: ARC, class: "gauge-track", pathLength: "100" }]];
+  // At 0% draw no fill at all: a zero-length dash with round caps would show as dots.
+  if (pct > 0) parts.push(["path", { d: ARC, class: "gauge-fill", pathLength: "100", "stroke-dasharray": `${pct} 101` }]);
   if (marker != null) {
     const angle = START + 270 * Math.min(Math.max(marker, 0), 1);
     const [x1, y1] = point(angle, R - 15);

@@ -25,7 +25,7 @@ import {
   withoutServices,
 } from "./lib/view.js";
 
-const APP_VERSION = "2.1.0";
+const APP_VERSION = "2.2.0";
 const AUTO_REFRESH_MS = 5 * 60_000;
 const REFRESH_ON_RETURN_MS = 60_000;
 
@@ -400,6 +400,34 @@ function hero(limit, now) {
   );
 }
 
+/** Up to three small gauges for the tightest limits, side by side, so they fit without scrolling. */
+function miniGauges(limits, now) {
+  const top = limits.slice(0, 3);
+  return h(
+    "ul",
+    { class: `minis minis-${top.length}`, "aria-label": "Krapste limieten" },
+    top.map((limit, i) => {
+      const g = barGeometry(limit);
+      return h(
+        "li",
+        { vars: { "--i": String(i) } },
+        h(
+          "a",
+          { class: `mini hero-${limit.level}`, href: limitHref(limit.id), "aria-label": accessibilityLabel(limit, now) },
+          h(
+            "div",
+            { class: "mini-gauge" },
+            gauge({ fill: g.fill, marker: g.marker, level: limit.level, label: `${limit.leftPct}% over` }),
+            h("div", { class: "hero-center" }, h("div", { class: "mini-pct" }, `${limit.leftPct}%`), h("div", { class: "mini-over" }, "over")),
+          ),
+          h("div", { class: "mini-name" }, serviceTile(limit.service, limit.serviceName, "tile-xs"), h("span", { class: "metric" }, limit.metric)),
+          h("div", { class: "mini-status" }, badge(limit.level)),
+        ),
+      );
+    }),
+  );
+}
+
 function fullRow(limit, now, showLegend) {
   const used = usedText(limit);
   const reset = resetIn(limit, now);
@@ -581,7 +609,7 @@ function limitsView() {
   if (!data.limits.length) {
     nodes.push(emptyState("Geen limieten", "Het dashboard gaf (nog) geen limieten terug."));
   } else {
-    nodes.push(hero(data.limits[0], now));
+    nodes.push(miniGauges(data.limits, now));
     nodes.push(chips(data.limits));
     const visible = filterByLevels(data.limits, state.filter);
     const list = h("ul", { class: "limits", "aria-label": "Limieten, meest urgent eerst" });
